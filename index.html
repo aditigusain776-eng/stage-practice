@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#070913">
+  <title>CYBERSTAGE VR // Immersive 3D Experience</title>
+  <meta name="description" content="Next-gen interactive 3D WebXR performance stage optimized for Meta Quest 3S and desktop browsers.">
+
+  <!-- =========================================================================
+       CDN IMPORTS: A-FRAME & GOOGLE FONTS
+       ========================================================================= -->
+  <!-- A-Frame 1.6.0: Stable WebXR framework with Meta Quest 3/3S controller profiles -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+
+  <!-- Futuristic Cyberpunk & Interface Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <!-- =========================================================================
+       CSS STYLES & INTERFACE DESIGN
+       ========================================================================= -->
+  <style>
+    :root {
+      --primary: #00f0ff;
+      --secondary: #ff007f;
+      --accent: #9d00ff;
+      --bg-dark: #070913;
+      --panel-bg: rgba(9, 13, 26, 0.78);
+      --panel-border: rgba(0, 240, 255, 0.28);
+      --text-main: #e8f4ff;
+      --text-dim: #8ba2c4;
+      --font-display: 'Orbitron', monospace, sans-serif;
+      --font-ui: 'Rajdhani', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: var(--font-ui);
+      color: var(--text-main);
+    }
+
+    /* A-Frame Canvas fills entire window */
+    .a-canvas {
+      position: absolute !important;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 1;
+    }
+
+    /* -------------------------------------------------------------------------
+       LOADING & INITIALIZATION OVERLAY
+       ------------------------------------------------------------------------- */
+    #loadingScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: radial-gradient(circle at center, #10162a 0%, #05070d 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    #loadingScreen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-brand {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .loader-logo {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 0.35rem;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(0, 240, 255, 0.8), 0 0 40px rgba(255, 0, 127, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .loader-logo span {
+      color: var(--primary);
+    }
+
+    .loader-sub {
+      font-family: var(--font-ui);
+      font-size: 1.1rem;
+      letter-spacing: 0.2rem;
+      color: var(--text-dim);
+      margin-top: 0.35rem;
+      text-transform: uppercase;
+    }
+
+    .loader-bar-wrap {
+      width: 280px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    }
+
+    .loader-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      transition: width 0.3s ease;
+      box-shadow: 0 0 12px var(--primary);
+    }
+
+    .loader-status {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      letter-spacing: 0.1rem;
+      color: var(--primary);
+      font-family: var(--font-display);
+    }
+
+    .enter-btn {
+      margin-top: 1.8rem;
+      padding: 0.85rem 2.2rem;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.18rem;
+      text-transform: uppercase;
+      color: #070913;
+      background: linear-gradient(135deg, var(--primary), #7af5ff);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      display: none;
+    }
+
+    .enter-btn:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.9);
+      filter: brightness(1.1);
+    }
+
+    /* -------------------------------------------------------------------------
+       DESKTOP HUD & TOP CONTROL BAR
+       ------------------------------------------------------------------------- */
+    #desktopHUD {
+      position: fixed;
+      z-index: 100;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    #desktopHUD.hud-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+    }
+
+    /* Top Navigation Banner */
+    .top-bar {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: auto;
+    }
+
+    .brand-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .brand-badge .icon {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+
+    .brand-badge .title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.12rem;
+      color: #fff;
+    }
+
+    .brand-badge .subtitle {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      border-left: 1px solid rgba(255,255,255,0.15);
+      padding-left: 8px;
+      letter-spacing: 0.05rem;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-btn {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.06rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      pointer-events: auto;
+    }
+
+    .hud-btn:hover {
+      border-color: var(--primary);
+      background: rgba(0, 240, 255, 0.15);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    }
+
+    .hud-btn.active {
+      border-color: var(--secondary);
+      background: rgba(255, 0, 127, 0.2);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+    }
+
+    /* Bottom Control Console (Desktop) */
+    .bottom-console {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+      max-width: 95vw;
+    }
+
+    .console-dock {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .group-label {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      letter-spacing: 0.1rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-right: 4px;
+    }
+
+    .divider {
+      width: 1px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .theme-chip {
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.05rem;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-dim);
+    }
+
+    .theme-chip:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .theme-chip.active {
+      color: #fff;
+      border-color: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .theme-neon.active { color: #00f0ff; }
+    .theme-concert.active { color: #ffaa00; }
+    .theme-ambient.active { color: #00ffaa; }
+    .theme-cyberpunk.active { color: #39ff14; }
+    .theme-gold.active { color: #ffd700; }
+
+    /* Quick status toast */
+    .status-toast {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(9, 13, 26, 0.9);
+      border: 1px solid var(--primary);
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      letter-spacing: 0.1rem;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      z-index: 200;
+    }
+
+    .status-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* -------------------------------------------------------------------------
+       HELP / CONTROLS MODAL
+       ------------------------------------------------------------------------- */
+    #helpModal {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    #helpModal.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #0c1122;
+      border: 1px solid var(--primary);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 620px;
+      padding: 24px 28px;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.25);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+
+    .modal-head h2 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      letter-spacing: 0.12rem;
+      color: #fff;
+    }
+
+    .close-modal-btn {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .close-modal-btn:hover { color: #fff; }
+
+    .help-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 600px) {
+      .help-grid { grid-template-columns: 1fr; }
+    }
+
+    .help-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      padding: 12px 14px;
+      border-radius: 8px;
+    }
+
+    .help-box h3 {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      color: var(--primary);
+      letter-spacing: 0.08rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .help-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: var(--text-dim);
+    }
+
+    .help-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .kbd {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.6; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 6px var(--primary)); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================================
+       SECTION: LOADING SCREEN & ENTER VR PROMPT
+       ========================================================================= -->
+  <div id="loadingScreen">
+    <div class="loader-brand">
+      <div class="loader-logo">
+        CYBER<span>STAGE</span>
+      </div>
+      <div class="loader-sub">Meta Quest 3S & WebXR Experience</div>
+    </div>
+    <div class="loader-bar-wrap">
+      <div class="loader-bar" id="loadBar"></div>
+    </div>
+    <div class="loader-status" id="loadStatus">INITIALIZING SCENE SHADERS...</div>
+    <button class="enter-btn" id="enterBtn" onclick="CyberStage.startExperience()">LAUNCH EXPERIENCE</button>
+  </div>
+
+  <!-- Status Notification Toast -->
+  <div class="status-toast" id="statusToast">LIGHTING: NEON ACTIVE</div>
+
+  <!-- =========================================================================
+       SECTION: DESKTOP HUD OVERLAY
+       ========================================================================= -->
+  <div id="desktopHUD">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="icon"></div>
+        <div class="title">CYBERSTAGE VR</div>
+        <div class="subtitle">QUEST 3S OPTIMIZED</div>
+      </div>
+      <div class="top-actions">
+        <button class="hud-btn" id="audioToggleBtn" onclick="CyberStage.toggleAudio()" title="Toggle Web Audio Synthesizer">
+          <span>🔊</span> <span id="audioStatusText">SYNTH AUDIO: OFF</span>
+        </button>
+        <button class="hud-btn" onclick="CyberStage.toggleHelpModal()">
+          <span>❓</span> CONTROLS
+        </button>
+        <button class="hud-btn" onclick="CyberStage.toggleDesktopHUD()" title="Toggle Desktop HUD (Key: H)">
+          <span>👁️</span> HUD
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Dock -->
+    <div class="bottom-console">
+      <div class="console-dock">
+        <!-- Theme Selector -->
+        <div class="control-group">
+          <span class="group-label">THEMES</span>
+          <button class="theme-chip theme-neon active" onclick="CyberStage.setTheme('neon')">NEON</button>
+          <button class="theme-chip theme-concert" onclick="CyberStage.setTheme('concert')">CONCERT</button>
+          <button class="theme-chip theme-ambient" onclick="CyberStage.setTheme('ambient')">AMBIENT</button>
+          <button class="theme-chip theme-cyberpunk" onclick="CyberStage.setTheme('cyberpunk')">CYBER</button>
+          <button class="theme-chip theme-gold" onclick="CyberStage.setTheme('gold')">GOLD</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Stage FX Toggles -->
+        <div class="control-group">
+          <span class="group-label">EFFECTS</span>
+          <button class="hud-btn active" id="btnFxLasers" onclick="CyberStage.toggleEffect('lasers')">LASERS</button>
+          <button class="hud-btn active" id="btnFxParticles" onclick="CyberStage.toggleEffect('particles')">MOTES</button>
+          <button class="hud-btn active" id="btnFxRings" onclick="CyberStage.toggleEffect('rings')">HALO</button>
+          <button class="hud-btn" id="btnBackdropMode" onclick="CyberStage.nextBackdropMode()">SCREEN: GRID</button>
+          <button class="hud-btn" onclick="CyberStage.triggerPulse()" style="border-color: #ff007f; color:#ff007f;">PULSE</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Performance / Speed / Viewpoints -->
+        <div class="control-group">
+          <span class="group-label">STAGE</span>
+          <button class="hud-btn" id="btnPlayPause" onclick="CyberStage.togglePlayPause()">PAUSE</button>
+          <button class="hud-btn" id="btnSpeed" onclick="CyberStage.cycleSpeed()">1.0x</button>
+          <button class="hud-btn" id="btnBrightness" onclick="CyberStage.cycleBrightness()">100%</button>
+          <button class="hud-btn" onclick="CyberStage.nextViewpoint()">VIEW: FRONT</button>
+          <button class="hud-btn" onclick="CyberStage.resetDefaults()" title="Reset Defaults">↺</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help / Controls Modal -->
+  <div id="helpModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>VR & DESKTOP CONTROLS</h2>
+        <button class="close-modal-btn" onclick="CyberStage.toggleHelpModal()">&times;</button>
+      </div>
+      <div class="help-grid">
+        <div class="help-box">
+          <h3>🎮 META QUEST 3S (VR)</h3>
+          <ul class="help-list">
+            <li><span>Laser Pointer:</span> <span class="kbd">Right / Left Aim</span></li>
+            <li><span>Select / Click:</span> <span class="kbd">Trigger (Index)</span></li>
+            <li><span>3D Control Panel:</span> <span class="kbd">Floating in front</span></li>
+            <li><span>Natural 6DoF:</span> <span class="kbd">Walk & Look around</span></li>
+            <li><span>Recenter Panel:</span> <span class="kbd">Panel button or Grip</span></li>
+          </ul>
+        </div>
+        <div class="help-box">
+          <h3>⌨️ DESKTOP SHORTCUTS</h3>
+          <ul class="help-list">
+            <li><span>Look / Rotate:</span> <span class="kbd">Mouse Click+Drag</span></li>
+            <li><span>Movement:</span> <span class="kbd">W / A / S / D keys</span></li>
+            <li><span>Themes 1-5:</span> <span class="kbd">Keys 1 - 5</span></li>
+            <li><span>Lasers / Particles:</span> <span class="kbd">L / P</span></li>
+            <li><span>Backdrop Mode:</span> <span class="kbd">B key</span></li>
+            <li><span>Pulse Flash:</span> <span class="kbd">Spacebar</span></li>
+            <li><span>Toggle Synth Beat:</span> <span class="kbd">M key</span></li>
+            <li><span>Toggle HUD:</span> <span class="kbd">H key</span></li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top: 18px; text-align: center; color: var(--text-dim); font-size: 0.85rem;">
+        WebXR Tip: To enter VR on Quest 3S, click the VR goggles icon at the bottom-right corner of the browser window.
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       SECTION: OFFSCREEN BACKDROP CANVAS
+       Procedural 1024x512 visualizer canvas mapped directly to the stage LED wall
+       ========================================================================= -->
+  <canvas id="backdropCanvas" width="1024" height="512" style="display:none;"></canvas>
+
+  <!-- =========================================================================
+       SECTION: A-FRAME SCENE DEFINITION
+       Optimized WebXR renderer for standalone headsets like Quest 3S
+       ========================================================================= -->
+  <a-scene
+    renderer="antialias: true; colorManagement: true; highRefreshRate: true; foveationLevel: 2; precision: medium"
+    vr-mode-ui="enabled: true"
+    device-orientation-permission-ui="enabled: true"
+    loading-screen="enabled: false"
+    background="color: #070913"
+    fog="type: exponential; color: #070913; density: 0.016">
+
+    <!-- ASSET MANAGEMENT -->
+    <a-assets timeout="10000">
+      <!-- Offscreen canvas asset -->
+      <canvas id="assetBackdropCanvas"></canvas>
+    </a-assets>
+
+    <!-- =======================================================================
+         STAGE LIGHTING
+         Carefully curated non-shadow lights + simulated volumetric geometry
+         ======================================================================= -->
+    <a-entity id="ambientLight" light="type: ambient; color: #18223c; intensity: 0.7"></a-entity>
+    <a-entity id="keyStageLight" light="type: directional; color: #00f0ff; intensity: 1.1" position="0 12 6"></a-entity>
+    <a-entity id="backStageLight" light="type: directional; color: #ff007f; intensity: 0.8" position="0 8 -10"></a-entity>
+    <a-entity id="centerStagePoint" light="type: point; color: #00f0ff; intensity: 1.6; distance: 16; decay: 2" position="0 2.5 -4"></a-entity>
+
+    <!-- =======================================================================
+         ARENA ENVIRONMENT & ARCHITECTURE
+         Stadium silhouettes, acoustic vertical ribs, crowd barriers
+         ======================================================================= -->
+    <a-entity id="arenaStructure">
+      <!-- Reflective Venue Floor (Dark glossy stage ground) -->
+      <a-circle position="0 -0.01 -2" radius="28" rotation="-90 0 0"
+                material="color: #080c16; roughness: 0.25; metalness: 0.85"></a-circle>
+      
+      <!-- Outer Floor Perimeter Accent Ring -->
+      <a-ring position="0 0.01 -2" radius-inner="23.8" radius-outer="24.2" rotation="-90 0 0"
+              material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.6; opacity: 0.5; transparent: true"></a-ring>
+
+      <!-- Venue Surrounding Boundary Wall (Octagonal arena columns) -->
+      <!-- Left & Right Structural Columns with glowing neon vertical strips -->
+      <a-cylinder position="-16 6 -8" radius="0.8" height="16" material="color: #0b1120; metalness: 0.9; roughness: 0.3"></a-cylinder>
+      <a-cylinder position="-16 6 -8" radius="0.85" height="15.8" open-ended="true" theta-length="20" rotation="0 45 0"
+                  material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1; side: double"></a-cylinder>
+
+      <a-cylinder position="16 6 -8" radius="0.8" height="16" material="color: #0b1120; metalness: 0.9; roughness: 0.3"></a-cylinder>
+      <a-cylinder position="16 6 -8" radius="0.85" height="15.8" open-ended="true" theta-length="20" rotation="0 -45 0"
+                  material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 1; side: double"></a-cylinder>
+
+      <a-cylinder position="-12 6 -16" radius="0.8" height="16" material="color: #0b1120; metalness: 0.9; roughness: 0.3"></a-cylinder>
+      <a-cylinder position="12 6 -16" radius="0.8" height="16" material="color: #0b1120; metalness: 0.9; roughness: 0.3"></a-cylinder>
+
+      <!-- Audience Pit Silhouette Barrier -->
+      <a-box position="0 0.5 0.5" width="14" height="1.0" depth="0.15"
+             material="color: #0a0e1c; metalness: 0.8; roughness: 0.4"></a-box>
+      <a-cylinder position="0 1.02 0.5" radius="0.04" height="14" rotation="0 0 90"
+                  material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.8"></a-cylinder>
+
+      <!-- Line Array Speaker Towers (Left & Right hanging concert audio rigs) -->
+      <a-entity position="-7.5 4.5 -2.5" rotation="5 25 0">
+        <a-box position="0 1.2 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
+        <a-box position="0 0.5 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
+        <a-box position="0 -0.2 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
+        <a-box position="0 -0.9 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
+        <a-cylinder position="0 1.9 0" radius="0.02" height="1.8" material="color: #444"></a-cylinder>
+      </a-entity>
+
+      <a-entity position="7.5 4.5 -2.5" rotation="5 -25 0">
+        <a-box position="0 1.2 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
+        <a-box position="0 0.5 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
+        <a-box position="0 -0.2 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
+        <a-box position="0 -0.9 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
+        <a-cylinder position="0 1.9 0" radius="0.02" height="1.8" material="color: #444"></a-cylinder>
+      </a-entity>
+    </a-entity>
+
+    <!-- =======================================================================
+         MAIN PERFORMANCE STAGE (MULTI-TIERED GEOMETRY)
+         ======================================================================= -->
+    <a-entity id="mainStageGroup" position="0 0 -5">
+      <!-- Tier 1: Wide Octagonal Base Riser -->
+      <a-cylinder position="0 0.35 0" radius="6.5" height="0.7" segments-radial="12"
+                  material="color: #0c1222; metalness: 0.9; roughness: 0.25"></a-cylinder>
+      <!-- Base Glowing Trim Ring -->
+      <a-ring position="0 0.71 0" radius-inner="6.2" radius-outer="6.45" rotation="-90 0 0"
+              material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1; side: double"
+              id="stageTrimRing1"></a-ring>
+
+      <!-- Tier 2: Stepped Upper Riser -->
+      <a-cylinder position="0 0.9 0" radius="5.0" height="0.4" segments-radial="12"
+                  material="color: #111a30; metalness: 0.85; roughness: 0.3"></a-cylinder>
+      <!-- Tier 2 Glowing Trim Ring -->
+      <a-ring position="0 1.11 0" radius-inner="4.7" radius-outer="4.95" rotation="-90 0 0"
+              material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 1; side: double"
+              id="stageTrimRing2"></a-ring>
+
+      <!-- Front Stage Catwalk / Thrust (Extends forward towards the viewer) -->
+      <a-box position="0 0.7 2.8" width="2.4" height="0.7" depth="3.8"
+             material="color: #0e1526; metalness: 0.85; roughness: 0.3"></a-box>
+      <!-- Catwalk Side Neon Strips -->
+      <a-box position="-1.2 1.06 2.8" width="0.08" height="0.04" depth="3.8"
+             material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1" id="catwalkNeonL"></a-box>
+      <a-box position="1.2 1.06 2.8" width="0.08" height="0.04" depth="3.8"
+             material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1" id="catwalkNeonR"></a-box>
+
+      <!-- Stage Front Stairs -->
+      <a-box position="0 0.22 4.9" width="2.2" height="0.25" depth="0.6" material="color: #141d33; metalness: 0.7"></a-box>
+      <a-box position="0 0.46 4.4" width="2.2" height="0.25" depth="0.6" material="color: #141d33; metalness: 0.7"></a-box>
+
+      <!-- Futuristic DJ / Performer Console Dais -->
+      <a-entity id="djBooth" position="0 1.1 0">
+        <!-- Floating Angular Cyber Desk -->
+        <a-box position="0 0.55 0" width="2.4" height="0.8" depth="0.9"
+               material="color: #080c16; metalness: 0.95; roughness: 0.15"></a-box>
+        <!-- Front Glowing LED Equalizer Mesh -->
+        <a-plane position="0 0.55 0.46" width="2.2" height="0.65"
+                 material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.8; opacity: 0.9" id="djFrontMesh"></a-plane>
+        <!-- Top Console Surface & Holographic Synth Keys -->
+        <a-box position="0 0.96 0" width="2.3" height="0.06" depth="0.85"
+               material="color: #141b2d; metalness: 0.9"></a-box>
+        <!-- Mini Hologram Wave Above Console -->
+        <a-plane position="0 1.25 0.1" width="1.2" height="0.35" rotation="-15 0 0"
+                 material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.2; opacity: 0.75; transparent: true; side: double"></a-plane>
+      </a-entity>
+    </a-entity>
+
+    <!-- =======================================================================
+         DYNAMIC BACKDROP MEGA-WALL (CURVED LED SCREEN)
+         Canvas texture dynamically refreshed with procedural visual patterns
+         ======================================================================= -->
+    <a-entity id="backdropContainer" position="0 4.2 -9.5">
+      <!-- Curved LED Wall Structure Frame -->
+      <a-cylinder id="backdropFrame" position="0 0 0" radius="8.8" height="6.6" open-ended="true"
+                  theta-start="125" theta-length="110" side="back"
+                  material="color: #050810; metalness: 0.9; roughness: 0.5"></a-cylinder>
+
+      <!-- Active Display Surface (Procedural Canvas Mapped) -->
+      <a-cylinder id="stageBackdropScreen" position="0 0 0.05" radius="8.7" height="6.4" open-ended="true"
+                  theta-start="127" theta-length="106" side="back"
+                  material="shader: flat; transparent: false; side: double"></a-cylinder>
+
+      <!-- Overhead LED Header Arch -->
+      <a-torus position="0 3.3 0" radius="8.75" radius-tubular="0.08" arc="110" rotation="90 35 0"
+               material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1" id="backdropTopArch"></a-torus>
+      <!-- Bottom LED Footer Arch -->
+      <a-torus position="0 -3.3 0" radius="8.75" radius-tubular="0.08" arc="110" rotation="90 35 0"
+               material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 1" id="backdropBottomArch"></a-torus>
+    </a-entity>
+
+    <!-- =======================================================================
+         OVERHEAD TRUSS & KINETIC HALO RINGS
+         3 concentric kinetic rings that rotate, tilt, and pulse above the stage
+         ======================================================================= -->
+    <a-entity id="kineticRingsGroup" position="0 6.8 -5" kinetic-rings>
+      <!-- Outer Ring 1 (Dia 7.6m) -->
+      <a-entity id="haloRing1">
+        <a-torus radius="3.8" radius-tubular="0.07" arc="360"
+                 material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.2; metalness: 0.9"></a-torus>
+        <!-- 4 Accent Point Emitters on Ring 1 -->
+        <a-sphere position="3.8 0 0" radius="0.14" material="color: #fff; emissive: #00f0ff; emissiveIntensity: 2"></a-sphere>
+        <a-sphere position="-3.8 0 0" radius="0.14" material="color: #fff; emissive: #00f0ff; emissiveIntensity: 2"></a-sphere>
+        <a-sphere position="0 0 3.8" radius="0.14" material="color: #fff; emissive: #00f0ff; emissiveIntensity: 2"></a-sphere>
+        <a-sphere position="0 0 -3.8" radius="0.14" material="color: #fff; emissive: #00f0ff; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+
+      <!-- Middle Ring 2 (Dia 5.4m) -->
+      <a-entity id="haloRing2">
+        <a-torus radius="2.7" radius-tubular="0.065" arc="360"
+                 material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 1.2; metalness: 0.9"></a-torus>
+        <!-- 3 Accent Point Emitters on Ring 2 -->
+        <a-sphere position="2.7 0 0" radius="0.12" material="color: #fff; emissive: #ff007f; emissiveIntensity: 2"></a-sphere>
+        <a-sphere position="-1.35 0 2.34" radius="0.12" material="color: #fff; emissive: #ff007f; emissiveIntensity: 2"></a-sphere>
+        <a-sphere position="-1.35 0 -2.34" radius="0.12" material="color: #fff; emissive: #ff007f; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+
+      <!-- Inner Ring 3 (Dia 3.4m) -->
+      <a-entity id="haloRing3">
+        <a-torus radius="1.7" radius-tubular="0.06" arc="360"
+                 material="color: #9d00ff; emissive: #9d00ff; emissiveIntensity: 1.4; metalness: 0.9"></a-torus>
+        <a-sphere position="0 0 1.7" radius="0.11" material="color: #fff; emissive: #9d00ff; emissiveIntensity: 2"></a-sphere>
+        <a-sphere position="0 0 -1.7" radius="0.11" material="color: #fff; emissive: #9d00ff; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+    </a-entity>
+
+    <!-- Structural Overhead Truss Beams -->
+    <a-entity id="trussBeams" position="0 8.5 -5">
+      <a-cylinder position="0 0 0" radius="0.08" height="18" rotation="0 0 90" material="color: #1a2238; metalness: 0.9"></a-cylinder>
+      <a-cylinder position="0 0 -3" radius="0.08" height="18" rotation="0 0 90" material="color: #1a2238; metalness: 0.9"></a-cylinder>
+      <a-cylinder position="-7 0 -1.5" radius="0.08" height="3" rotation="90 0 0" material="color: #1a2238; metalness: 0.9"></a-cylinder>
+      <a-cylinder position="7 0 -1.5" radius="0.08" height="3" rotation="90 0 0" material="color: #1a2238; metalness: 0.9"></a-cylinder>
+    </a-entity>
+
+    <!-- =======================================================================
+         VOLUMETRIC LIGHT BEAMS (SIMULATED ADDITIVE CONES)
+         Mobile-performant volumetric beam cones that sweep through the venue
+         ======================================================================= -->
+    <a-entity id="volumetricBeamsGroup" moving-spotlights>
+      <!-- Beam 1: Left Wing Outer -->
+      <a-entity id="beam1" position="-6.5 8.2 -5">
+        <a-cone radius-bottom="1.4" radius-top="0.08" height="10" position="0 -5 0" rotation="180 0 0"
+                material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.9; opacity: 0.22; transparent: true; blending: additive; side: double"></a-cone>
+        <a-sphere radius="0.22" material="color: #ffffff; emissive: #00f0ff; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+
+      <!-- Beam 2: Left Mid -->
+      <a-entity id="beam2" position="-3.5 8.2 -5">
+        <a-cone radius-bottom="1.5" radius-top="0.08" height="10" position="0 -5 0" rotation="180 0 0"
+                material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 0.9; opacity: 0.22; transparent: true; blending: additive; side: double"></a-cone>
+        <a-sphere radius="0.22" material="color: #ffffff; emissive: #ff007f; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+
+      <!-- Beam 3: Center Left -->
+      <a-entity id="beam3" position="-1.2 8.2 -5">
+        <a-cone radius-bottom="1.5" radius-top="0.08" height="10" position="0 -5 0" rotation="180 0 0"
+                material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.9; opacity: 0.22; transparent: true; blending: additive; side: double"></a-cone>
+        <a-sphere radius="0.22" material="color: #ffffff; emissive: #00f0ff; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+
+      <!-- Beam 4: Center Right -->
+      <a-entity id="beam4" position="1.2 8.2 -5">
+        <a-cone radius-bottom="1.5" radius-top="0.08" height="10" position="0 -5 0" rotation="180 0 0"
+                material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.9; opacity: 0.22; transparent: true; blending: additive; side: double"></a-cone>
+        <a-sphere radius="0.22" material="color: #ffffff; emissive: #00f0ff; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+
+      <!-- Beam 5: Right Mid -->
+      <a-entity id="beam5" position="3.5 8.2 -5">
+        <a-cone radius-bottom="1.5" radius-top="0.08" height="10" position="0 -5 0" rotation="180 0 0"
+                material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 0.9; opacity: 0.22; transparent: true; blending: additive; side: double"></a-cone>
+        <a-sphere radius="0.22" material="color: #ffffff; emissive: #ff007f; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+
+      <!-- Beam 6: Right Wing Outer -->
+      <a-entity id="beam6" position="6.5 8.2 -5">
+        <a-cone radius-bottom="1.4" radius-top="0.08" height="10" position="0 -5 0" rotation="180 0 0"
+                material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.9; opacity: 0.22; transparent: true; blending: additive; side: double"></a-cone>
+        <a-sphere radius="0.22" material="color: #ffffff; emissive: #00f0ff; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+    </a-entity>
+
+    <!-- =======================================================================
+         STAGE LASER ARRAYS
+         High-intensity thin beam cylinders crossing above crowd & stage
+         ======================================================================= -->
+    <a-entity id="laserArraysGroup" laser-sweeper>
+      <!-- Stage Left Laser Bank (4 lasers) -->
+      <a-entity id="laserL1" position="-5.2 2.2 -6.5">
+        <a-cylinder radius="0.02" height="24" position="0 0 12" rotation="88 0 0"
+                    material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 2; opacity: 0.75; transparent: true; blending: additive"></a-cylinder>
+      </a-entity>
+      <a-entity id="laserL2" position="-4.8 2.2 -6.5">
+        <a-cylinder radius="0.02" height="24" position="0 0 12" rotation="88 0 0"
+                    material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 2; opacity: 0.75; transparent: true; blending: additive"></a-cylinder>
+      </a-entity>
+      <a-entity id="laserL3" position="-4.4 2.2 -6.5">
+        <a-cylinder radius="0.02" height="24" position="0 0 12" rotation="88 0 0"
+                    material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 2; opacity: 0.75; transparent: true; blending: additive"></a-cylinder>
+      </a-entity>
+
+      <!-- Stage Right Laser Bank (4 lasers) -->
+      <a-entity id="laserR1" position="4.4 2.2 -6.5">
+        <a-cylinder radius="0.02" height="24" position="0 0 12" rotation="88 0 0"
+                    material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 2; opacity: 0.75; transparent: true; blending: additive"></a-cylinder>
+      </a-entity>
+      <a-entity id="laserR2" position="4.8 2.2 -6.5">
+        <a-cylinder radius="0.02" height="24" position="0 0 12" rotation="88 0 0"
+                    material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 2; opacity: 0.75; transparent: true; blending: additive"></a-cylinder>
+      </a-entity>
+      <a-entity id="laserR3" position="5.2 2.2 -6.5">
+        <a-cylinder radius="0.02" height="24" position="0 0 12" rotation="88 0 0"
+                    material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 2; opacity: 0.75; transparent: true; blending: additive"></a-cylinder>
+      </a-entity>
+    </a-entity>
+
+    <!-- =======================================================================
+         HOLOGRAPHIC CENTERPIECE (FLOATING CRYSTAL & GIMBAL RINGS)
+         Suspended 2m above DJ booth, bobbing and glowing
+         ======================================================================= -->
+    <a-entity id="hologramCenterpiece" position="0 3.2 -5" hologram-crystal>
+      <!-- Core Octahedron / Crystal -->
+      <a-octahedron id="holoCore" radius="0.6"
+                    material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.4; wireframe: true; wireframeLinewidth: 2; opacity: 0.85; transparent: true"></a-octahedron>
+      <!-- Inner Solid Glowing Diamond -->
+      <a-octahedron id="holoInnerCore" radius="0.32"
+                    material="color: #ffffff; emissive: #00f0ff; emissiveIntensity: 1.8; opacity: 0.9; transparent: true"></a-octahedron>
+      <!-- Orbital Gimbal Ring X -->
+      <a-torus id="holoGimbalX" radius="0.95" radius-tubular="0.02"
+               material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 1.5; opacity: 0.75; transparent: true"></a-torus>
+      <!-- Orbital Gimbal Ring Y -->
+      <a-torus id="holoGimbalY" radius="1.2" radius-tubular="0.02" rotation="90 0 0"
+               material="color: #9d00ff; emissive: #9d00ff; emissiveIntensity: 1.5; opacity: 0.75; transparent: true"></a-torus>
+    </a-entity>
+
+    <!-- =======================================================================
+         FLOATING PARTICLES FIELD (CYBER DUST & AMBIENT MOTES)
+         Mobile-optimized pooled particles that gently drift around audience & stage
+         ======================================================================= -->
+    <a-entity id="particlesField" floating-particles></a-entity>
+
+    <!-- =======================================================================
+         CAMERA RIG & META QUEST 3S 6DOF VR CONTROLLERS
+         ======================================================================= -->
+    <a-entity id="cameraRig" position="0 0 2.2">
+      <!-- Headset Tracked Camera -->
+      <a-camera id="headCamera" look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 15" position="0 1.65 0">
+        <!-- Desktop Mouse Raycaster / Reticle -->
+        <a-entity id="desktopCursor"
+                  cursor="rayOrigin: mouse; fuse: false"
+                  raycaster="objects: .clickable; far: 20">
+        </a-entity>
+      </a-camera>
+
+      <!-- Left VR Controller (Tracked Pose + Laser Pointer + Raycaster) -->
+      <a-entity id="leftHand"
+                laser-controls="hand: left"
+                oculus-touch-controls="hand: left"
+                raycaster="objects: .clickable; far: 12; lineColor: #00f0ff; lineOpacity: 0.85"
+                line="color: #00f0ff; opacity: 0.85">
+        <a-sphere radius="0.015" material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.5"></a-sphere>
+      </a-entity>
+
+      <!-- Right VR Controller (Tracked Pose + Laser Pointer + Raycaster) -->
+      <a-entity id="rightHand"
+                laser-controls="hand: right"
+                oculus-touch-controls="hand: right"
+                raycaster="objects: .clickable; far: 12; lineColor: #ff007f; lineOpacity: 0.85"
+                line="color: #ff007f; opacity: 0.85">
+        <a-sphere radius="0.015" material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 1.5"></a-sphere>
+      </a-entity>
+
+      <!-- =====================================================================
+           IN-VR FLOATING 3D CONTROL PANEL
+           Comfortable distance (1.25m), angled 15 deg back, directly accessible
+           via VR laser pointers or desktop mouse click!
+           ===================================================================== -->
+      <a-entity id="vrControlPanel" position="0 1.15 -1.25" rotation="-16 0 0" panel-follow>
+        <!-- Panel Backdrop (Curved Glassmorphic Slate) -->
+        <a-plane width="1.25" height="0.85" position="0 0 0"
+                 material="color: #080d1a; opacity: 0.88; transparent: true; roughness: 0.3; metalness: 0.8"></a-plane>
+        <!-- Panel Glowing Bezel Outline -->
+        <a-ring radius-inner="0.65" radius-outer="0.67" position="0 0 0.002" scale="0.94 0.63 1"
+                material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.8" id="vrPanelBezel"></a-ring>
+
+        <!-- Panel Header Title -->
+        <a-text value="STAGE CONTROL // WEBXR" align="center" position="0 0.36 0.01"
+                width="1.6" font="mozillavr" color="#00f0ff" id="vrPanelTitle"></a-text>
+
+        <!-- Row 1: THEMES (5 buttons) -->
+        <a-text value="THEME PRESETS" position="-0.54 0.26 0.01" width="1.1" font="mozillavr" color="#8ba2c4"></a-text>
+        
+        <a-entity position="-0.42 0.17 0.02" class="clickable" vr-button="action: theme; value: neon; label: NEON; width: 0.18; height: 0.08; color: #00f0ff"></a-entity>
+        <a-entity position="-0.21 0.17 0.02" class="clickable" vr-button="action: theme; value: concert; label: CONCERT; width: 0.18; height: 0.08; color: #ffaa00"></a-entity>
+        <a-entity position="0.00 0.17 0.02" class="clickable" vr-button="action: theme; value: ambient; label: AMBIENT; width: 0.18; height: 0.08; color: #00ffaa"></a-entity>
+        <a-entity position="0.21 0.17 0.02" class="clickable" vr-button="action: theme; value: cyberpunk; label: CYBER; width: 0.18; height: 0.08; color: #39ff14"></a-entity>
+        <a-entity position="0.42 0.17 0.02" class="clickable" vr-button="action: theme; value: gold; label: GOLD; width: 0.18; height: 0.08; color: #ffd700"></a-entity>
+
+        <!-- Row 2: FX TOGGLES (4 buttons) -->
+        <a-text value="STAGE EFFECTS" position="-0.54 0.07 0.01" width="1.1" font="mozillavr" color="#8ba2c4"></a-text>
+
+        <a-entity position="-0.36 -0.02 0.02" class="clickable" id="vrBtnLasers"
+                  vr-button="action: toggle; value: lasers; label: LASERS; width: 0.22; height: 0.08; color: #00f0ff; active: true"></a-entity>
+        <a-entity position="-0.12 -0.02 0.02" class="clickable" id="vrBtnParticles"
+                  vr-button="action: toggle; value: particles; label: MOTES; width: 0.22; height: 0.08; color: #00f0ff; active: true"></a-entity>
+        <a-entity position="0.12 -0.02 0.02" class="clickable" id="vrBtnRings"
+                  vr-button="action: toggle; value: rings; label: HALO; width: 0.22; height: 0.08; color: #00f0ff; active: true"></a-entity>
+        <a-entity position="0.36 -0.02 0.02" class="clickable" id="vrBtnBackdrop"
+                  vr-button="action: backdrop; value: cycle; label: SCREEN; width: 0.22; height: 0.08; color: #00f0ff"></a-entity>
+
+        <!-- Row 3: PERFORMANCE CONTROLS (Pulse, Speed, Synth, Views) -->
+        <a-text value="PERFORMANCE & VIEWS" position="-0.54 -0.12 0.01" width="1.1" font="mozillavr" color="#8ba2c4"></a-text>
+
+        <a-entity position="-0.40 -0.21 0.02" class="clickable"
+                  vr-button="action: pulse; value: now; label: PULSE FX; width: 0.20; height: 0.08; color: #ff007f"></a-entity>
+        <a-entity position="-0.18 -0.21 0.02" class="clickable" id="vrBtnSpeed"
+                  vr-button="action: speed; value: cycle; label: SPD: 1.0x; width: 0.19; height: 0.08; color: #00f0ff"></a-entity>
+        <a-entity position="0.03 -0.21 0.02" class="clickable" id="vrBtnAudio"
+                  vr-button="action: audio; value: toggle; label: SYNTH: OFF; width: 0.20; height: 0.08; color: #9d00ff"></a-entity>
+        <a-entity position="0.25 -0.21 0.02" class="clickable" id="vrBtnView"
+                  vr-button="action: view; value: cycle; label: VIEW: FRONT; width: 0.21; height: 0.08; color: #00f0ff"></a-entity>
+        <a-entity position="0.45 -0.21 0.02" class="clickable"
+                  vr-button="action: reset; value: all; label: RESET; width: 0.15; height: 0.08; color: #ff5555"></a-entity>
+
+        <!-- Footer Notice: Recenter panel tooltip -->
+        <a-text value="Press [Recenter Panel] or Grip button to pull panel forward" align="center" position="0 -0.34 0.01"
+                width="0.9" font="mozillavr" color="#5a7094"></a-text>
+      </a-entity>
+    </a-entity>
+  </a-scene>
+
+  <!-- =========================================================================
+       SECTION: JAVASCRIPT STATE MANAGEMENT & SCENE CONTROLLERS
+       ========================================================================= -->
+  <script>
+    /**
+     * CYBERSTAGE VR - Master Architecture & State Engine
+     * Pure modular vanilla JS running with A-Frame 1.6.0 & WebXR
+     */
+    const CyberStage = (() => {
+      // -----------------------------------------------------------------------
+      // 1. APPLICATION STATE
+      // -----------------------------------------------------------------------
+      const state = {
+        theme: 'neon',
+        effects: {
+          lasers: true,
+          particles: true,
+          rings: true,
+          spots: true
+        },
+        backdropMode: 0, // 0: Cyber Grid, 1: Hyperspace, 2: Waveforms, 3: Mandala
+        backdropModesList: ['GRID', 'WARP', 'WAVES', 'MANDALA'],
+        isPlaying: true,
+        speedMultiplier: 1.0,
+        speedOptions: [0.5, 1.0, 2.0],
+        speedIndex: 1,
+        brightnessLevel: 1.0,
+        brightnessOptions: [0.6, 1.0, 1.4],
+        brightnessLabels: ['60%', '100%', '140%'],
+        brightnessIndex: 1,
+        audioActive: false,
+        pulseActive: false,
+        pulseDecay: 0,
+        activeViewpointIndex: 0,
+        viewpoints: [
+          { name: 'FRONT', pos: { x: 0, y: 0, z: 2.2 }, rot: { x: 0, y: 0, z: 0 } },
+          { name: 'STAGE', pos: { x: 0, y: 1.1, z: -2.8 }, rot: { x: 0, y: 0, z: 0 } },
+          { name: 'BALCONY', pos: { x: 0, y: 3.5, z: 6.5 }, rot: { x: -10, y: 0, z: 0 } },
+          { name: 'BOOTH', pos: { x: 0, y: 0.8, z: 7.2 }, rot: { x: 0, y: 0, z: 0 } }
+        ],
+        time: 0,
+        isVRMode: false
+      };
+
+      // -----------------------------------------------------------------------
+      // 2. THEME PALETTES
+      // -----------------------------------------------------------------------
+      const themes = {
+        neon: {
+          primary: '#00f0ff',
+          secondary: '#ff007f',
+          accent: '#9d00ff',
+          stageTrim: '#00f0ff',
+          ambientLight: '#141d33',
+          keyLight: '#00f0ff',
+          backLight: '#ff007f',
+          fog: '#070913',
+          name: 'NEON CYBER'
+        },
+        concert: {
+          primary: '#0066ff',
+          secondary: '#ffaa00',
+          accent: '#8a2be2',
+          stageTrim: '#ffaa00',
+          ambientLight: '#0d1326',
+          keyLight: '#0088ff',
+          backLight: '#ffaa00',
+          fog: '#050814',
+          name: 'CONCERT ARENA'
+        },
+        ambient: {
+          primary: '#00e5ff',
+          secondary: '#00ffaa',
+          accent: '#3d0075',
+          stageTrim: '#00ffaa',
+          ambientLight: '#091520',
+          keyLight: '#00e5ff',
+          backLight: '#00ffaa',
+          fog: '#040b10',
+          name: 'AMBIENT CHILL'
+        },
+        cyberpunk: {
+          primary: '#39ff14',
+          secondary: '#ff0055',
+          accent: '#ffe600',
+          stageTrim: '#39ff14',
+          ambientLight: '#141c10',
+          keyLight: '#39ff14',
+          backLight: '#ff0055',
+          fog: '#080e05',
+          name: 'CYBERPUNK OVERDRIVE'
+        },
+        gold: {
+          primary: '#ffd700',
+          secondary: '#fff8dc',
+          accent: '#ff8c00',
+          stageTrim: '#ffd700',
+          ambientLight: '#1f180c',
+          keyLight: '#ffd700',
+          backLight: '#ff8c00',
+          fog: '#0d0a04',
+          name: 'GOLDEN SPOTLIGHT'
+        }
+      };
+
+      // -----------------------------------------------------------------------
+      // 3. PROCEDURAL WEB AUDIO SYNTHESIZER (ZERO EXTERNAL ASSETS)
+      // Generates a rich driving 120 BPM cyberpunk electronic rhythm
+      // -----------------------------------------------------------------------
+      let audioCtx = null;
+      let synthTimer = null;
+      let synthStep = 0;
+      let masterGainNode = null;
+
+      function initAudio() {
+        if (audioCtx) return;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        audioCtx = new AudioContextClass();
+        masterGainNode = audioCtx.createGain();
+        masterGainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        masterGainNode.connect(audioCtx.destination);
+      }
+
+      function playSynthStep() {
+        if (!state.audioActive || !audioCtx) return;
+        const now = audioCtx.currentTime;
+        const step16 = synthStep % 16;
+
+        // 1. Kick on beats 0, 4, 8, 12
+        if (step16 % 4 === 0) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(35, now + 0.12);
+          gain.gain.setValueAtTime(0.9, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.connect(gain);
+          gain.connect(masterGainNode);
+          osc.start(now);
+          osc.stop(now + 0.25);
+
+          // Subtle visual pulse bump on kick
+          state.pulseDecay = Math.max(state.pulseDecay, 0.4);
+        }
+
+        // 2. Snare / Noise Clap on beats 4, 12
+        if (step16 === 4 || step16 === 12) {
+          const bufferSize = audioCtx.sampleRate * 0.12;
+          const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const output = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+          }
+          const whiteNoise = audioCtx.createBufferSource();
+          whiteNoise.buffer = noiseBuffer;
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.setValueAtTime(900, now);
+          const snareGain = audioCtx.createGain();
+          snareGain.gain.setValueAtTime(0.35, now);
+          snareGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+          whiteNoise.connect(filter);
+          filter.connect(snareGain);
+          snareGain.connect(masterGainNode);
+          whiteNoise.start(now);
+        }
+
+        // 3. Rolling 16th-note Synth Bass
+        const bassFreqs = [55, 55, 73.4, 55, 65.4, 55, 82.4, 73.4];
+        const bassFreq = bassFreqs[step16 % bassFreqs.length];
+        const bassOsc = audioCtx.createOscillator();
+        const bassFilter = audioCtx.createBiquadFilter();
+        const bassGain = audioCtx.createGain();
+
+        bassOsc.type = 'sawtooth';
+        bassOsc.frequency.setValueAtTime(bassFreq, now);
+
+        bassFilter.type = 'lowpass';
+        bassFilter.frequency.setValueAtTime(450 + Math.sin(synthStep * 0.2) * 250, now);
+        bassFilter.Q.setValueAtTime(4, now);
+
+        bassGain.gain.setValueAtTime(0.22, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.11);
+
+        bassOsc.connect(bassFilter);
+        bassFilter.connect(bassGain);
+        bassGain.connect(masterGainNode);
+        bassOsc.start(now);
+        bassOsc.stop(now + 0.12);
+
+        synthStep++;
+      }
+
+      function toggleAudio() {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        state.audioActive = !state.audioActive;
+        const btnText = document.getElementById('audioStatusText');
+        const audioBtn = document.getElementById('audioToggleBtn');
+
+        if (state.audioActive) {
+          btnText.textContent = 'SYNTH AUDIO: ON';
+          audioBtn.classList.add('active');
+          if (!synthTimer) {
+            // 120 BPM = 16th notes at 125ms intervals
+            synthTimer = setInterval(playSynthStep, 125);
+          }
+          showToast('SYNTHESIZER AUDIO ACTIVATED');
+        } else {
+          btnText.textContent = 'SYNTH AUDIO: OFF';
+          audioBtn.classList.remove('active');
+          if (synthTimer) {
+            clearInterval(synthTimer);
+            synthTimer = null;
+          }
+          showToast('SYNTHESIZER AUDIO MUTED');
+        }
+        updateVRButtonsState();
+      }
+
+      // -----------------------------------------------------------------------
+      // 4. PROCEDURAL BACKDROP CANVAS VISUALIZER
+      // Renders 4 high-energy visual patterns directly onto canvas texture
+      // -----------------------------------------------------------------------
+      const canvas = document.getElementById('backdropCanvas');
+      const ctx = canvas.getContext('2d');
+      let backdropTextureUpdateCounter = 0;
+
+      function renderBackdrop() {
+        if (!state.isPlaying) return;
+        const w = canvas.width;
+        const h = canvas.height;
+        const t = state.time;
+        const currentTheme = themes[state.theme];
+
+        // Background Fade
+        ctx.fillStyle = '#060914';
+        ctx.fillRect(0, 0, w, h);
+
+        const mode = state.backdropMode;
+
+        if (mode === 0) {
+          // MODE 0: CYBER GRID & EQUALIZER BARS
+          // Draw perspective digital floor grid
+          ctx.strokeStyle = currentTheme.primary;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          const gridHorizon = h * 0.45;
+
+          // Vanishing lines
+          for (let x = 0; x <= w; x += 64) {
+            ctx.moveTo(w / 2 + (x - w / 2) * 0.1, gridHorizon);
+            ctx.lineTo(x, h);
+          }
+          // Horizontal perspective lines
+          for (let y = gridHorizon; y < h; y += (y - gridHorizon) * 0.35 + 8) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+          }
+          ctx.stroke();
+
+          // 32 Dual-channel Equalizer Spectrum Bars
+          const bars = 36;
+          const barW = (w / bars) - 6;
+          for (let i = 0; i < bars; i++) {
+            const freq = Math.sin(t * 4 + i * 0.35) * 0.5 + 0.5;
+            const beatKick = state.pulseDecay * 0.5;
+            const barH = (freq * 0.65 + beatKick) * (gridHorizon * 0.85);
+
+            const x = i * (barW + 6) + 4;
+            const y = gridHorizon - barH;
+
+            const grad = ctx.createLinearGradient(0, gridHorizon, 0, y);
+            grad.addColorStop(0, currentTheme.primary);
+            grad.addColorStop(1, currentTheme.secondary);
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(x, y, barW, barH);
+
+            // Glowing Peak Cap
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x, y - 4, barW, 3);
+          }
+        } else if (mode === 1) {
+          // MODE 1: HYPERSPACE WARP TUNNEL
+          const cx = w / 2;
+          const cy = h / 2;
+          const ringsCount = 14;
+
+          for (let i = 0; i < ringsCount; i++) {
+            const progress = ((t * 0.8 + i / ringsCount) % 1);
+            const size = Math.pow(progress, 2.5) * w * 0.8;
+            const alpha = Math.sin(progress * Math.PI);
+
+            ctx.strokeStyle = i % 2 === 0 ? currentTheme.primary : currentTheme.secondary;
+            ctx.lineWidth = 2 + progress * 6;
+            ctx.globalAlpha = alpha;
+
+            ctx.strokeRect(cx - size / 2, cy - size * 0.35, size, size * 0.7);
+
+            // Diagonal corner rays
+            if (i === ringsCount - 1) {
+              ctx.beginPath();
+              ctx.moveTo(0, 0); ctx.lineTo(cx, cy);
+              ctx.moveTo(w, 0); ctx.lineTo(cx, cy);
+              ctx.moveTo(0, h); ctx.lineTo(cx, cy);
+              ctx.moveTo(w, h); ctx.lineTo(cx, cy);
+              ctx.stroke();
+            }
+          }
+          ctx.globalAlpha = 1.0;
+        } else if (mode === 2) {
+          // MODE 2: HARMONIC WAVEFORMS & OSCILLOSCOPE
+          const waves = 4;
+          for (let j = 0; j < waves; j++) {
+            ctx.beginPath();
+            ctx.strokeStyle = j % 2 === 0 ? currentTheme.primary : currentTheme.secondary;
+            ctx.lineWidth = 3.5;
+            const cy = h / 2 + (j - 1.5) * 35;
+
+            for (let x = 0; x < w; x += 12) {
+              const freq1 = Math.sin(x * 0.012 + t * 3 + j) * 55;
+              const freq2 = Math.cos(x * 0.024 - t * 2) * 25;
+              const kickWave = state.pulseDecay * 40 * Math.sin(x * 0.05);
+              const y = cy + freq1 + freq2 + kickWave;
+
+              if (x === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+        } else if (mode === 3) {
+          // MODE 3: QUANTUM CYBER MANDALA
+          const cx = w / 2;
+          const cy = h / 2;
+          const petals = 12;
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(t * 0.3);
+
+          for (let i = 0; i < petals; i++) {
+            ctx.rotate((Math.PI * 2) / petals);
+            ctx.strokeStyle = i % 2 === 0 ? currentTheme.primary : currentTheme.accent;
+            ctx.lineWidth = 2.5;
+
+            const rad = 110 + Math.sin(t * 3 + i) * 30 + state.pulseDecay * 50;
+            ctx.beginPath();
+            ctx.arc(rad, 0, 45, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(rad + 45, 0);
+            ctx.stroke();
+          }
+
+          // Outer Concentric Radar Ring
+          ctx.strokeStyle = currentTheme.secondary;
+          ctx.beginPath();
+          ctx.arc(0, 0, 190 + state.pulseDecay * 30, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        // Pulse Flash Overlay
+        if (state.pulseDecay > 0.01) {
+          ctx.fillStyle = currentTheme.primary;
+          ctx.globalAlpha = state.pulseDecay * 0.35;
+          ctx.fillRect(0, 0, w, h);
+          ctx.globalAlpha = 1.0;
+        }
+
+        // Throttle A-Frame texture update for performance (every 2 frames is 30-45 FPS, silky smooth)
+        backdropTextureUpdateCounter++;
+        if (backdropTextureUpdateCounter % 2 === 0) {
+          const screenEl = document.getElementById('stageBackdropScreen');
+          if (screenEl && screenEl.components && screenEl.components.material) {
+            const mat = screenEl.components.material.material;
+            if (mat && mat.map) {
+              mat.map.needsUpdate = true;
+            }
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 5. THEME SWITCHER & SCENE COLOR UPDATER
+      // -----------------------------------------------------------------------
+      function setTheme(themeKey) {
+        if (!themes[themeKey]) return;
+        state.theme = themeKey;
+        const t = themes[themeKey];
+
+        // 1. Update A-Frame lights
+        const ambient = document.getElementById('ambientLight');
+        const keyLight = document.getElementById('keyStageLight');
+        const backLight = document.getElementById('backStageLight');
+        const centerPoint = document.getElementById('centerStagePoint');
+
+        if (ambient) ambient.setAttribute('light', 'color', t.ambientLight);
+        if (keyLight) keyLight.setAttribute('light', 'color', t.keyLight);
+        if (backLight) backLight.setAttribute('light', 'color', t.backLight);
+        if (centerPoint) centerPoint.setAttribute('light', 'color', t.primary);
+
+        // 2. Update Stage Geometry Trim Rings
+        const trim1 = document.getElementById('stageTrimRing1');
+        const trim2 = document.getElementById('stageTrimRing2');
+        const catwalkL = document.getElementById('catwalkNeonL');
+        const catwalkR = document.getElementById('catwalkNeonR');
+        const djMesh = document.getElementById('djFrontMesh');
+
+        if (trim1) trim1.setAttribute('material', `color: ${t.primary}; emissive: ${t.primary}`);
+        if (trim2) trim2.setAttribute('material', `color: ${t.secondary}; emissive: ${t.secondary}`);
+        if (catwalkL) catwalkL.setAttribute('material', `color: ${t.primary}; emissive: ${t.primary}`);
+        if (catwalkR) catwalkR.setAttribute('material', `color: ${t.primary}; emissive: ${t.primary}`);
+        if (djMesh) djMesh.setAttribute('material', `color: ${t.primary}; emissive: ${t.primary}`);
+
+        // 3. Update Backdrop Arches
+        const archTop = document.getElementById('backdropTopArch');
+        const archBot = document.getElementById('backdropBottomArch');
+        if (archTop) archTop.setAttribute('material', `color: ${t.primary}; emissive: ${t.primary}`);
+        if (archBot) archBot.setAttribute('material', `color: ${t.secondary}; emissive: ${t.secondary}`);
+
+        // 4. Update Halo Rings
+        const r1 = document.querySelector('#haloRing1 a-torus');
+        const r2 = document.querySelector('#haloRing2 a-torus');
+        const r3 = document.querySelector('#haloRing3 a-torus');
+        if (r1) r1.setAttribute('material', `color: ${t.primary}; emissive: ${t.primary}`);
+        if (r2) r2.setAttribute('material', `color: ${t.secondary}; emissive: ${t.secondary}`);
+        if (r3) r3.setAttribute('material', `color: ${t.accent}; emissive: ${t.accent}`);
+
+        // 5. Update Hologram Centerpiece
+        const holoCore = document.getElementById('holoCore');
+        const holoInner = document.getElementById('holoInnerCore');
+        const holoGimX = document.getElementById('holoGimbalX');
+        const holoGimY = document.getElementById('holoGimbalY');
+        if (holoCore) holoCore.setAttribute('material', `color: ${t.primary}; emissive: ${t.primary}`);
+        if (holoInner) holoInner.setAttribute('material', `color: #ffffff; emissive: ${t.primary}`);
+        if (holoGimX) holoGimX.setAttribute('material', `color: ${t.secondary}; emissive: ${t.secondary}`);
+        if (holoGimY) holoGimY.setAttribute('material', `color: ${t.accent}; emissive: ${t.accent}`);
+
+        // 6. Update Volumetric Beam Cones
+        for (let i = 1; i <= 6; i++) {
+          const cone = document.querySelector(`#beam${i} a-cone`);
+          const sphere = document.querySelector(`#beam${i} a-sphere`);
+          const beamCol = (i % 2 === 0) ? t.secondary : t.primary;
+          if (cone) cone.setAttribute('material', `color: ${beamCol}; emissive: ${beamCol}`);
+          if (sphere) sphere.setAttribute('material', `emissive: ${beamCol}`);
+        }
+
+        // 7. Update Lasers
+        const leftLasers = ['laserL1', 'laserL2', 'laserL3'];
+        const rightLasers = ['laserR1', 'laserR2', 'laserR3'];
+        leftLasers.forEach((id, idx) => {
+          const cyl = document.querySelector(`#${id} a-cylinder`);
+          const col = idx % 2 === 0 ? t.primary : t.secondary;
+          if (cyl) cyl.setAttribute('material', `color: ${col}; emissive: ${col}`);
+        });
+        rightLasers.forEach((id, idx) => {
+          const cyl = document.querySelector(`#${id} a-cylinder`);
+          const col = idx % 2 === 0 ? t.primary : t.secondary;
+          if (cyl) cyl.setAttribute('material', `color: ${col}; emissive: ${col}`);
+        });
+
+        // 8. Update VR Panel Bezel & Title
+        const vrBezel = document.getElementById('vrPanelBezel');
+        const vrTitle = document.getElementById('vrPanelTitle');
+        if (vrBezel) vrBezel.setAttribute('material', `color: ${t.primary}; emissive: ${t.primary}`);
+        if (vrTitle) vrTitle.setAttribute('color', t.primary);
+
+        // 9. Update UI Buttons & CSS classes
+        document.querySelectorAll('.theme-chip').forEach(chip => {
+          chip.classList.toggle('active', chip.classList.contains(`theme-${themeKey}`));
+        });
+
+        showToast(`THEME APPLIED: ${t.name}`);
+        updateVRButtonsState();
+      }
+
+      // -----------------------------------------------------------------------
+      // 6. STAGE EFFECT TOGGLES & CONTROLS
+      // -----------------------------------------------------------------------
+      function toggleEffect(fxName) {
+        if (state.effects[fxName] === undefined) return;
+        state.effects[fxName] = !state.effects[fxName];
+        const isActive = state.effects[fxName];
+
+        if (fxName === 'lasers') {
+          const el = document.getElementById('laserArraysGroup');
+          if (el) el.setAttribute('visible', isActive);
+          const btn = document.getElementById('btnFxLasers');
+          if (btn) btn.classList.toggle('active', isActive);
+          showToast(`LASER BEAMS: ${isActive ? 'ENABLED' : 'DISABLED'}`);
+        } else if (fxName === 'particles') {
+          const el = document.getElementById('particlesField');
+          if (el) el.setAttribute('visible', isActive);
+          const btn = document.getElementById('btnFxParticles');
+          if (btn) btn.classList.toggle('active', isActive);
+          showToast(`CYBER MOTES: ${isActive ? 'ENABLED' : 'DISABLED'}`);
+        } else if (fxName === 'rings') {
+          const el = document.getElementById('kineticRingsGroup');
+          if (el) el.setAttribute('visible', isActive);
+          const btn = document.getElementById('btnFxRings');
+          if (btn) btn.classList.toggle('active', isActive);
+          showToast(`KINETIC HALO: ${isActive ? 'ENABLED' : 'DISABLED'}`);
+        }
+
+        updateVRButtonsState();
+      }
+
+      function nextBackdropMode() {
+        state.backdropMode = (state.backdropMode + 1) % state.backdropModesList.length;
+        const name = state.backdropModesList[state.backdropMode];
+        const btn = document.getElementById('btnBackdropMode');
+        if (btn) btn.textContent = `SCREEN: ${name}`;
+        showToast(`BACKDROP: ${name} MODE`);
+        updateVRButtonsState();
+      }
+
+      function triggerPulse() {
+        state.pulseDecay = 1.0;
+        const centerLight = document.getElementById('centerStagePoint');
+        if (centerLight) {
+          centerLight.setAttribute('light', 'intensity', 3.5 * state.brightnessLevel);
+          setTimeout(() => {
+            centerLight.setAttribute('light', 'intensity', 1.6 * state.brightnessLevel);
+          }, 350);
+        }
+        showToast('STAGE PULSE TRIGGERED!');
+      }
+
+      function togglePlayPause() {
+        state.isPlaying = !state.isPlaying;
+        const btn = document.getElementById('btnPlayPause');
+        if (btn) btn.textContent = state.isPlaying ? 'PAUSE' : 'PLAY';
+        showToast(state.isPlaying ? 'STAGE ANIMATION RESUMED' : 'STAGE ANIMATION PAUSED');
+      }
+
+      function cycleSpeed() {
+        state.speedIndex = (state.speedIndex + 1) % state.speedOptions.length;
+        state.speedMultiplier = state.speedOptions[state.speedIndex];
+        const btn = document.getElementById('btnSpeed');
+        if (btn) btn.textContent = `${state.speedMultiplier.toFixed(1)}x`;
+        showToast(`ANIMATION SPEED: ${state.speedMultiplier.toFixed(1)}x`);
+        updateVRButtonsState();
+      }
+
+      function cycleBrightness() {
+        state.brightnessIndex = (state.brightnessIndex + 1) % state.brightnessOptions.length;
+        state.brightnessLevel = state.brightnessOptions[state.brightnessIndex];
+        const label = state.brightnessLabels[state.brightnessIndex];
+
+        const ambient = document.getElementById('ambientLight');
+        const keyLight = document.getElementById('keyStageLight');
+        const backLight = document.getElementById('backStageLight');
+        const centerPoint = document.getElementById('centerStagePoint');
+
+        if (ambient) ambient.setAttribute('light', 'intensity', 0.7 * state.brightnessLevel);
+        if (keyLight) keyLight.setAttribute('light', 'intensity', 1.1 * state.brightnessLevel);
+        if (backLight) backLight.setAttribute('light', 'intensity', 0.8 * state.brightnessLevel);
+        if (centerPoint) centerPoint.setAttribute('light', 'intensity', 1.6 * state.brightnessLevel);
+
+        const btn = document.getElementById('btnBrightness');
+        if (btn) btn.textContent = label;
+        showToast(`STAGE BRIGHTNESS: ${label}`);
+      }
+
+      function nextViewpoint() {
+        state.activeViewpointIndex = (state.activeViewpointIndex + 1) % state.viewpoints.length;
+        applyViewpoint(state.activeViewpointIndex);
+      }
+
+      function applyViewpoint(index) {
+        state.activeViewpointIndex = index;
+        const vp = state.viewpoints[index];
+        const rig = document.getElementById('cameraRig');
+        if (rig) {
+          rig.setAttribute('position', `${vp.pos.x} ${vp.pos.y} ${vp.pos.z}`);
+          rig.setAttribute('rotation', `${vp.rot.x} ${vp.rot.y} ${vp.rot.z}`);
+        }
+        showToast(`VIEWPOINT: ${vp.name}`);
+        updateVRButtonsState();
+      }
+
+      function resetDefaults() {
+        setTheme('neon');
+        state.effects.lasers = true;
+        state.effects.particles = true;
+        state.effects.rings = true;
+        document.getElementById('laserArraysGroup').setAttribute('visible', true);
+        document.getElementById('particlesField').setAttribute('visible', true);
+        document.getElementById('kineticRingsGroup').setAttribute('visible', true);
+        document.getElementById('btnFxLasers').classList.add('active');
+        document.getElementById('btnFxParticles').classList.add('active');
+        document.getElementById('btnFxRings').classList.add('active');
+
+        state.backdropMode = 0;
+        document.getElementById('btnBackdropMode').textContent = 'SCREEN: GRID';
+
+        state.isPlaying = true;
+        document.getElementById('btnPlayPause').textContent = 'PAUSE';
+
+        state.speedIndex = 1;
+        state.speedMultiplier = 1.0;
+        document.getElementById('btnSpeed').textContent = '1.0x';
+
+        state.brightnessIndex = 1;
+        state.brightnessLevel = 1.0;
+        document.getElementById('btnBrightness').textContent = '100%';
+
+        applyViewpoint(0);
+        showToast('SETTINGS RESTORED TO DEFAULT');
+        updateVRButtonsState();
+      }
+
+      // -----------------------------------------------------------------------
+      // 7. IN-VR 3D BUTTONS STATE SYNC
+      // -----------------------------------------------------------------------
+      function updateVRButtonsState() {
+        // Update Lasers VR Button
+        const vrLasers = document.getElementById('vrBtnLasers');
+        if (vrLasers && vrLasers.components && vrLasers.components['vr-button']) {
+          vrLasers.components['vr-button'].setActive(state.effects.lasers);
+        }
+        // Update Particles VR Button
+        const vrParticles = document.getElementById('vrBtnParticles');
+        if (vrParticles && vrParticles.components && vrParticles.components['vr-button']) {
+          vrParticles.components['vr-button'].setActive(state.effects.particles);
+        }
+        // Update Rings VR Button
+        const vrRings = document.getElementById('vrBtnRings');
+        if (vrRings && vrRings.components && vrRings.components['vr-button']) {
+          vrRings.components['vr-button'].setActive(state.effects.rings);
+        }
+        // Update Screen Mode VR Button
+        const vrBackdrop = document.getElementById('vrBtnBackdrop');
+        if (vrBackdrop && vrBackdrop.components && vrBackdrop.components['vr-button']) {
+          vrBackdrop.components['vr-button'].setLabel(state.backdropModesList[state.backdropMode]);
+        }
+        // Update Speed VR Button
+        const vrSpeed = document.getElementById('vrBtnSpeed');
+        if (vrSpeed && vrSpeed.components && vrSpeed.components['vr-button']) {
+          vrSpeed.components['vr-button'].setLabel(`SPD: ${state.speedMultiplier.toFixed(1)}x`);
+        }
+        // Update Audio VR Button
+        const vrAudio = document.getElementById('vrBtnAudio');
+        if (vrAudio && vrAudio.components && vrAudio.components['vr-button']) {
+          vrAudio.components['vr-button'].setLabel(state.audioActive ? 'SYNTH: ON' : 'SYNTH: OFF');
+          vrAudio.components['vr-button'].setActive(state.audioActive);
+        }
+        // Update View VR Button
+        const vrView = document.getElementById('vrBtnView');
+        if (vrView && vrView.components && vrView.components['vr-button']) {
+          vrView.components['vr-button'].setLabel(`VIEW: ${state.viewpoints[state.activeViewpointIndex].name}`);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 8. DESKTOP HUD & MODAL HELPERS
+      // -----------------------------------------------------------------------
+      function toggleDesktopHUD() {
+        const hud = document.getElementById('desktopHUD');
+        if (hud) hud.classList.toggle('hud-hidden');
+      }
+
+      function toggleHelpModal() {
+        const modal = document.getElementById('helpModal');
+        if (modal) modal.classList.toggle('open');
+      }
+
+      let toastTimeout = null;
+      function showToast(msg) {
+        const toast = document.getElementById('statusToast');
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.classList.add('show');
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          toast.classList.remove('show');
+        }, 2200);
+      }
+
+      // -----------------------------------------------------------------------
+      // 9. LOADING & EXPERIENCE INITIALIZATION
+      // -----------------------------------------------------------------------
+      function initLoader() {
+        const bar = document.getElementById('loadBar');
+        const status = document.getElementById('loadStatus');
+        const enterBtn = document.getElementById('enterBtn');
+
+        let pct = 0;
+        const interval = setInterval(() => {
+          pct += Math.floor(Math.random() * 20) + 15;
+          if (pct >= 100) {
+            pct = 100;
+            clearInterval(interval);
+            bar.style.width = '100%';
+            status.textContent = 'SYSTEM READY // WEBXR COMPATIBLE';
+            enterBtn.style.display = 'block';
+          } else {
+            bar.style.width = pct + '%';
+            if (pct > 40 && pct < 80) status.textContent = 'BUILDING VOLUMETRIC ARRAYS...';
+            else if (pct >= 80) status.textContent = 'PRE-CACHING VR CONTROLLER PROFILES...';
+          }
+        }, 120);
+      }
+
+      function startExperience() {
+        const loader = document.getElementById('loadingScreen');
+        if (loader) loader.classList.add('hidden');
+        // Initial backdrop canvas material binding
+        const screenEl = document.getElementById('stageBackdropScreen');
+        if (screenEl) {
+          screenEl.setAttribute('material', {
+            src: '#backdropCanvas',
+            shader: 'flat',
+            side: 'double'
+          });
+        }
+        showToast('WELCOME TO CYBERSTAGE VR');
+      }
+
+      // -----------------------------------------------------------------------
+      // 10. KEYBOARD SHORTCUTS FOR POWER USERS & DESKTOP
+      // -----------------------------------------------------------------------
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        const key = e.key.toUpperCase();
+
+        if (key === '1') setTheme('neon');
+        else if (key === '2') setTheme('concert');
+        else if (key === '3') setTheme('ambient');
+        else if (key === '4') setTheme('cyberpunk');
+        else if (key === '5') setTheme('gold');
+        else if (key === 'L') toggleEffect('lasers');
+        else if (key === 'P') toggleEffect('particles');
+        else if (key === 'R') toggleEffect('rings');
+        else if (key === 'B') nextBackdropMode();
+        else if (key === ' ') { e.preventDefault(); triggerPulse(); }
+        else if (key === 'M') toggleAudio();
+        else if (key === 'V') nextViewpoint();
+        else if (key === 'H') toggleDesktopHUD();
+        else if (key === '?') toggleHelpModal();
+      });
+
+      return {
+        state,
+        themes,
+        setTheme,
+        toggleEffect,
+        nextBackdropMode,
+        triggerPulse,
+        togglePlayPause,
+        cycleSpeed,
+        cycleBrightness,
+        nextViewpoint,
+        applyViewpoint,
+        resetDefaults,
+        toggleAudio,
+        toggleDesktopHUD,
+        toggleHelpModal,
+        renderBackdrop,
+        initLoader,
+        startExperience,
+        updateVRButtonsState
+      };
+    })();
+
+    // =========================================================================
+    // A-FRAME CUSTOM COMPONENTS
+    // =========================================================================
+
+    /**
+     * Component: kinetic-rings
+     * Rotates and elevates 3 concentric overhead halo rings with distinct axes
+     */
+    AFRAME.registerComponent('kinetic-rings', {
+      init: function () {
+        this.r1 = this.el.querySelector('#haloRing1');
+        this.r2 = this.el.querySelector('#haloRing2');
+        this.r3 = this.el.querySelector('#haloRing3');
+        this.t = 0;
+      },
+      tick: function (time, delta) {
+        if (!CyberStage.state.isPlaying) return;
+        const spd = (delta / 1000) * CyberStage.state.speedMultiplier;
+        this.t += spd;
+
+        if (this.r1) {
+          this.r1.object3D.rotation.y += spd * 0.45;
+          this.r1.object3D.rotation.x = Math.sin(this.t * 0.6) * 0.22;
+        }
+        if (this.r2) {
+          this.r2.object3D.rotation.y -= spd * 0.65;
+          this.r2.object3D.rotation.z = Math.cos(this.t * 0.8) * 0.28;
+        }
+        if (this.r3) {
+          this.r3.object3D.rotation.y += spd * 0.9;
+          this.r3.object3D.position.y = Math.sin(this.t * 1.4) * 0.4;
+        }
+      }
+    });
+
+    /**
+     * Component: moving-spotlights
+     * Sweeps the 6 overhead volumetric light cones back and forth
+     */
+    AFRAME.registerComponent('moving-spotlights', {
+      init: function () {
+        this.beams = [];
+        for (let i = 1; i <= 6; i++) {
+          const el = this.el.querySelector(`#beam${i}`);
+          if (el) this.beams.push({ el, phase: i * 0.75 });
+        }
+        this.t = 0;
+      },
+      tick: function (time, delta) {
+        if (!CyberStage.state.isPlaying) return;
+        const spd = (delta / 1000) * CyberStage.state.speedMultiplier;
+        this.t += spd;
+
+        this.beams.forEach((item, idx) => {
+          const angleX = Math.sin(this.t * 1.2 + item.phase) * 26 + 10;
+          const angleZ = Math.cos(this.t * 0.9 + item.phase * 1.5) * 32;
+          item.el.setAttribute('rotation', `${angleX} 0 ${angleZ}`);
+        });
+      }
+    });
+
+    /**
+     * Component: laser-sweeper
+     * Synchronized concert laser fan scans and criss-crossing beams
+     */
+    AFRAME.registerComponent('laser-sweeper', {
+      init: function () {
+        this.t = 0;
+        this.leftLasers = [
+          this.el.querySelector('#laserL1'),
+          this.el.querySelector('#laserL2'),
+          this.el.querySelector('#laserL3')
+        ];
+        this.rightLasers = [
+          this.el.querySelector('#laserR1'),
+          this.el.querySelector('#laserR2'),
+          this.el.querySelector('#laserR3')
+        ];
+      },
+      tick: function (time, delta) {
+        if (!CyberStage.state.isPlaying) return;
+        const spd = (delta / 1000) * CyberStage.state.speedMultiplier;
+        this.t += spd;
+
+        const baseRotY = Math.sin(this.t * 1.4) * 35;
+        const baseRotX = Math.cos(this.t * 1.8) * 16;
+
+        this.leftLasers.forEach((laser, idx) => {
+          if (laser) {
+            const spread = (idx - 1) * 12;
+            laser.setAttribute('rotation', `${baseRotX + 15} ${baseRotY + spread - 20} 0`);
+          }
+        });
+
+        this.rightLasers.forEach((laser, idx) => {
+          if (laser) {
+            const spread = (idx - 1) * 12;
+            laser.setAttribute('rotation', `${-baseRotX + 15} ${-baseRotY - spread + 20} 0`);
+          }
+        });
+      }
+    });
+
+    /**
+     * Component: hologram-crystal
+     * Bobs, spins and pulses the centerpiece floating crystal
+     */
+    AFRAME.registerComponent('hologram-crystal', {
+      init: function () {
+        this.core = this.el.querySelector('#holoCore');
+        this.inner = this.el.querySelector('#holoInnerCore');
+        this.gimX = this.el.querySelector('#holoGimbalX');
+        this.gimY = this.el.querySelector('#holoGimbalY');
+        this.t = 0;
+      },
+      tick: function (time, delta) {
+        if (!CyberStage.state.isPlaying) return;
+        const spd = (delta / 1000) * CyberStage.state.speedMultiplier;
+        this.t += spd;
+
+        // Bobbing vertical motion
+        this.el.object3D.position.y = 3.2 + Math.sin(this.t * 1.5) * 0.25;
+
+        if (this.core) {
+          this.core.object3D.rotation.y += spd * 1.2;
+          this.core.object3D.rotation.x += spd * 0.6;
+        }
+        if (this.inner) {
+          this.inner.object3D.rotation.y -= spd * 1.8;
+          const pulseScale = 1.0 + CyberStage.state.pulseDecay * 0.6;
+          this.inner.object3D.scale.set(pulseScale, pulseScale, pulseScale);
+        }
+        if (this.gimX) this.gimX.object3D.rotation.x += spd * 1.4;
+        if (this.gimY) this.gimY.object3D.rotation.y -= spd * 1.1;
+      }
+    });
+
+    /**
+     * Component: floating-particles
+     * Creates and manages 75 pooled floating ambient dust motes
+     */
+    AFRAME.registerComponent('floating-particles', {
+      init: function () {
+        this.count = 75;
+        this.particles = [];
+        const currentTheme = CyberStage.themes[CyberStage.state.theme];
+
+        for (let i = 0; i < this.count; i++) {
+          const p = document.createElement('a-sphere');
+          const x = (Math.random() - 0.5) * 22;
+          const y = Math.random() * 8 + 0.5;
+          const z = (Math.random() - 0.5) * 22 - 2;
+          const rad = Math.random() * 0.04 + 0.02;
+
+          p.setAttribute('radius', rad);
+          p.setAttribute('position', `${x} ${y} ${z}`);
+          p.setAttribute('material', {
+            color: currentTheme.primary,
+            emissive: currentTheme.primary,
+            emissiveIntensity: 1.5,
+            opacity: 0.65,
+            transparent: true
+          });
+          this.el.appendChild(p);
+
+          this.particles.push({
+            el: p,
+            x, y, z,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: Math.random() * 0.4 + 0.1,
+            vz: (Math.random() - 0.5) * 0.3
+          });
+        }
+      },
+      tick: function (time, delta) {
+        if (!CyberStage.state.isPlaying) return;
+        const dt = (delta / 1000) * CyberStage.state.speedMultiplier;
+
+        this.particles.forEach(p => {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.z += p.vz * dt;
+
+          // Wrap boundaries
+          if (p.y > 8.5) p.y = 0.4;
+          if (p.x > 11) p.x = -11;
+          if (p.x < -11) p.x = 11;
+          if (p.z > 9) p.z = -13;
+          if (p.z < -13) p.z = 9;
+
+          p.el.object3D.position.set(p.x, p.y, p.z);
+        });
+      }
+    });
+
+    /**
+     * Component: vr-button
+     * Custom 3D interactive button for Meta Quest 3S VR laser pointers & desktop raycasting
+     */
+    AFRAME.registerComponent('vr-button', {
+      schema: {
+        action: { type: 'string', default: '' },
+        value: { type: 'string', default: '' },
+        label: { type: 'string', default: 'BTN' },
+        width: { type: 'number', default: 0.2 },
+        height: { type: 'number', default: 0.08 },
+        color: { type: 'string', default: '#00f0ff' },
+        active: { type: 'boolean', default: false }
+      },
+      init: function () {
+        const d = this.data;
+        // Background Plane
+        this.bg = document.createElement('a-plane');
+        this.bg.setAttribute('width', d.width);
+        this.bg.setAttribute('height', d.height);
+        this.bg.setAttribute('material', {
+          color: d.active ? d.color : '#121828',
+          opacity: 0.9,
+          roughness: 0.4
+        });
+        this.el.appendChild(this.bg);
+
+        // Border Outline
+        this.border = document.createElement('a-ring');
+        this.border.setAttribute('radius-inner', d.width * 0.46);
+        this.border.setAttribute('radius-outer', d.width * 0.49);
+        this.border.setAttribute('scale', `1 ${d.height / d.width} 1`);
+        this.border.setAttribute('position', '0 0 0.002');
+        this.border.setAttribute('material', {
+          color: d.color,
+          emissive: d.color,
+          emissiveIntensity: d.active ? 1.5 : 0.6
+        });
+        this.el.appendChild(this.border);
+
+        // Label Text
+        this.text = document.createElement('a-text');
+        this.text.setAttribute('value', d.label);
+        this.text.setAttribute('align', 'center');
+        this.text.setAttribute('position', '0 0 0.01');
+        this.text.setAttribute('width', d.width * 4.2);
+        this.text.setAttribute('font', 'mozillavr');
+        this.text.setAttribute('color', d.active ? '#070913' : '#ffffff');
+        this.el.appendChild(this.text);
+
+        // Hover & Interaction listeners
+        this.el.addEventListener('mouseenter', () => {
+          this.el.object3D.scale.set(1.08, 1.08, 1.08);
+          this.border.setAttribute('material', 'emissiveIntensity', 2.0);
+        });
+
+        this.el.addEventListener('mouseleave', () => {
+          this.el.object3D.scale.set(1.0, 1.0, 1.0);
+          this.border.setAttribute('material', 'emissiveIntensity', this.data.active ? 1.5 : 0.6);
+        });
+
+        this.el.addEventListener('click', (evt) => {
+          this.onClick();
+        });
+      },
+      onClick: function () {
+        const d = this.data;
+        // Haptic pulse feedback on Quest 3S VR controller if available
+        if (navigator.vibrate) navigator.vibrate(25);
+
+        if (d.action === 'theme') {
+          CyberStage.setTheme(d.value);
+        } else if (d.action === 'toggle') {
+          CyberStage.toggleEffect(d.value);
+        } else if (d.action === 'backdrop') {
+          CyberStage.nextBackdropMode();
+        } else if (d.action === 'pulse') {
+          CyberStage.triggerPulse();
+        } else if (d.action === 'speed') {
+          CyberStage.cycleSpeed();
+        } else if (d.action === 'audio') {
+          CyberStage.toggleAudio();
+        } else if (d.action === 'view') {
+          CyberStage.nextViewpoint();
+        } else if (d.action === 'reset') {
+          CyberStage.resetDefaults();
+        }
+      },
+      setActive: function (isActive) {
+        this.data.active = isActive;
+        if (this.bg) {
+          this.bg.setAttribute('material', 'color', isActive ? this.data.color : '#121828');
+        }
+        if (this.text) {
+          this.text.setAttribute('color', isActive ? '#070913' : '#ffffff');
+        }
+        if (this.border) {
+          this.border.setAttribute('material', 'emissiveIntensity', isActive ? 1.5 : 0.6);
+        }
+      },
+      setLabel: function (newLabel) {
+        this.data.label = newLabel;
+        if (this.text) {
+          this.text.setAttribute('value', newLabel);
+        }
+      }
+    });
+
+    /**
+     * Component: panel-follow
+     * Positions and recenters the VR floating panel in front of user when entering VR
+     */
+    AFRAME.registerComponent('panel-follow', {
+      init: function () {
+        const sceneEl = this.el.sceneEl;
+        // When entering immersive VR, adapt UI
+        sceneEl.addEventListener('enter-vr', () => {
+          CyberStage.state.isVRMode = true;
+          // Hide 2D desktop HUD in VR mode so FOV is pristine
+          const hud = document.getElementById('desktopHUD');
+          if (hud) hud.classList.add('hud-hidden');
+          // Recenter panel in front of headset
+          this.recenterPanel();
+        });
+
+        sceneEl.addEventListener('exit-vr', () => {
+          CyberStage.state.isVRMode = false;
+          const hud = document.getElementById('desktopHUD');
+          if (hud) hud.classList.remove('hud-hidden');
+        });
+      },
+      recenterPanel: function () {
+        this.el.setAttribute('position', '0 1.15 -1.25');
+        this.el.setAttribute('rotation', '-16 0 0');
+      }
+    });
+
+    // =========================================================================
+    // SCENE TICK LOOP (BACKDROP CANVAS ANIMATION & PULSE DECAY)
+    // =========================================================================
+    const scene = document.querySelector('a-scene');
+    scene.addEventListener('loaded', () => {
+      CyberStage.initLoader();
+
+      // Master tick loop
+      let lastTime = performance.now();
+      function masterLoop(now) {
+        const delta = (now - lastTime) / 1000;
+        lastTime = now;
+
+        if (CyberStage.state.isPlaying) {
+          CyberStage.state.time += delta * CyberStage.state.speedMultiplier;
+
+          // Decay pulse flash smoothly
+          if (CyberStage.state.pulseDecay > 0) {
+            CyberStage.state.pulseDecay = Math.max(0, CyberStage.state.pulseDecay - delta * 2.5);
+          }
+
+          // Render canvas backdrop visualizer
+          CyberStage.renderBackdrop();
+        }
+
+        requestAnimationFrame(masterLoop);
+      }
+      requestAnimationFrame(masterLoop);
+    });
+  </script>
+</body>
+</html>
