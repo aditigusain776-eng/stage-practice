@@ -563,6 +563,8 @@
           <button class="hud-btn active" id="btnFxLasers" onclick="CyberStage.toggleEffect('lasers')">LASERS</button>
           <button class="hud-btn active" id="btnFxParticles" onclick="CyberStage.toggleEffect('particles')">MOTES</button>
           <button class="hud-btn active" id="btnFxRings" onclick="CyberStage.toggleEffect('rings')">HALO</button>
+          <button class="hud-btn active" id="btnFxCrowd" onclick="CyberStage.toggleEffect('crowd')">CROWD</button>
+          <button class="hud-btn active" id="btnFxArtist" onclick="CyberStage.toggleEffect('artist')">ARTIST</button>
           <button class="hud-btn" id="btnBackdropMode" onclick="CyberStage.nextBackdropMode()">SCREEN: GRID</button>
           <button class="hud-btn" onclick="CyberStage.triggerPulse()" style="border-color: #ff007f; color:#ff007f;">PULSE</button>
         </div>
@@ -607,6 +609,7 @@
             <li><span>Movement:</span> <span class="kbd">W / A / S / D keys</span></li>
             <li><span>Themes 1-5:</span> <span class="kbd">Keys 1 - 5</span></li>
             <li><span>Lasers / Particles:</span> <span class="kbd">L / P</span></li>
+            <li><span>Crowd / Artist:</span> <span class="kbd">C / A</span></li>
             <li><span>Backdrop Mode:</span> <span class="kbd">B key</span></li>
             <li><span>Pulse Flash:</span> <span class="kbd">Spacebar</span></li>
             <li><span>Toggle Synth Beat:</span> <span class="kbd">M key</span></li>
@@ -701,6 +704,12 @@
         <a-box position="0 -0.9 0" width="0.8" height="0.6" depth="0.7" material="color: #121829; metalness: 0.6"></a-box>
         <a-cylinder position="0 1.9 0" radius="0.02" height="1.8" material="color: #444"></a-cylinder>
       </a-entity>
+
+      <!-- =====================================================================
+           VIBING CONCERT CROWD (AUDIENCE PIT)
+           34 animated, stylized concert-goers in front of and flanking the stage
+           ===================================================================== -->
+      <a-entity id="vibingCrowd" vibing-crowd></a-entity>
     </a-entity>
 
     <!-- =======================================================================
@@ -750,6 +759,103 @@
         <!-- Mini Hologram Wave Above Console -->
         <a-plane position="0 1.25 0.1" width="1.2" height="0.35" rotation="-15 0 0"
                  material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.2; opacity: 0.75; transparent: true; side: double"></a-plane>
+      </a-entity>
+
+      <!-- =====================================================================
+           PERFORMING ARTIST (CYBER DJ & LIVE PERFORMER)
+           Stationed at the DJ booth on the stage deck (y=1.1, z=-0.45)
+           ===================================================================== -->
+      <a-entity id="performingArtist" position="0 1.1 -0.45" performing-artist>
+        <!-- Artist Root Body -->
+        <a-entity id="artistBody">
+          <!-- Legs -->
+          <a-cylinder position="-0.18 0.42 0" radius="0.08" height="0.84"
+                      material="color: #0b1120; metalness: 0.9; roughness: 0.3"></a-cylinder>
+          <a-cylinder position="0.18 0.42 0" radius="0.08" height="0.84"
+                      material="color: #0b1120; metalness: 0.9; roughness: 0.3"></a-cylinder>
+          <a-box position="-0.18 0.06 0.05" width="0.16" height="0.12" depth="0.26"
+                 material="color: #141c2e; metalness: 0.8"></a-box>
+          <a-box position="0.18 0.06 0.05" width="0.16" height="0.12" depth="0.26"
+                 material="color: #141c2e; metalness: 0.8"></a-box>
+          <!-- Glowing Sole Lights -->
+          <a-box position="-0.18 0.01 0.05" width="0.17" height="0.02" depth="0.27"
+                 material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1" id="artistBootL"></a-box>
+          <a-box position="0.18 0.01 0.05" width="0.17" height="0.02" depth="0.27"
+                 material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1" id="artistBootR"></a-box>
+
+          <!-- Torso / Spine (Animated sway) -->
+          <a-entity id="artistTorso" position="0 0.84 0">
+            <!-- Hips -->
+            <a-cylinder position="0 0.08 0" radius="0.22" height="0.16"
+                        material="color: #0e1424; metalness: 0.9"></a-cylinder>
+            <!-- Cyber Armor Jacket -->
+            <a-box position="0 0.38 0" width="0.52" height="0.5" depth="0.32"
+                   material="color: #090e1c; metalness: 0.95; roughness: 0.2"></a-box>
+            <!-- Chest Reactor Arc Light -->
+            <a-cylinder position="0 0.45 0.17" radius="0.06" height="0.02" rotation="90 0 0"
+                        material="color: #ffffff; emissive: #00f0ff; emissiveIntensity: 2" id="artistCoreLight"></a-cylinder>
+            <!-- Neon Chest Lapels -->
+            <a-box position="-0.12 0.38 0.165" width="0.035" height="0.36" depth="0.02" rotation="0 0 -18"
+                   material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.5" id="artistChestNeon1"></a-box>
+            <a-box position="0.12 0.38 0.165" width="0.035" height="0.36" depth="0.02" rotation="0 0 18"
+                   material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.5" id="artistChestNeon2"></a-box>
+            <!-- Shoulder Pauldrons -->
+            <a-box position="-0.32 0.56 0" width="0.18" height="0.1" depth="0.26" rotation="0 0 15"
+                   material="color: #121a2d; metalness: 0.8"></a-box>
+            <a-box position="0.32 0.56 0" width="0.18" height="0.1" depth="0.26" rotation="0 0 -15"
+                   material="color: #121a2d; metalness: 0.8"></a-box>
+
+            <!-- Head & Visor (Animated head nod) -->
+            <a-entity id="artistHead" position="0 0.68 0">
+              <a-cylinder position="0 0.05 0" radius="0.07" height="0.1" material="color: #0b0f1a"></a-cylinder>
+              <a-sphere position="0 0.2 0" radius="0.17"
+                        material="color: #182236; metalness: 0.9; roughness: 0.3"></a-sphere>
+              <!-- Glowing Cyber Visor HUD -->
+              <a-cylinder position="0 0.22 0.12" radius="0.175" height="0.08" open-ended="true"
+                          theta-start="140" theta-length="80" side="double" rotation="0 180 0"
+                          material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 2" id="artistVisor"></a-cylinder>
+              <!-- DJ Headphones -->
+              <a-torus position="0 0.22 0" radius="0.19" radius-tubular="0.016" arc="180" rotation="0 0 90"
+                       material="color: #111; metalness: 0.9"></a-torus>
+              <a-cylinder position="-0.19 0.2 0" radius="0.065" height="0.05" rotation="0 0 90"
+                          material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 1.8" id="artistHeadphonesL"></a-cylinder>
+              <a-cylinder position="0.19 0.2 0" radius="0.065" height="0.05" rotation="0 0 90"
+                          material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 1.8" id="artistHeadphonesR"></a-cylinder>
+              <!-- Floating Artist Hologram Tag -->
+              <a-entity position="0 0.52 0">
+                <a-ring radius-inner="0.22" radius-outer="0.24" rotation="90 0 0"
+                        material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.5; side: double" id="artistTagRing"></a-ring>
+                <a-text value="DJ // CYBER-AURA" align="center" width="1.4" position="0 0.12 0" font="mozillavr" color="#00f0ff" id="artistTagName"></a-text>
+              </a-entity>
+            </a-entity>
+
+            <!-- Left Arm: DJ Console Controller (Animated knob twist & slider tapping) -->
+            <a-entity id="artistLeftArm" position="-0.32 0.52 0">
+              <a-cylinder position="0 -0.16 0.12" radius="0.055" height="0.32" rotation="-35 0 15"
+                          material="color: #0e1526; metalness: 0.8"></a-cylinder>
+              <a-entity id="artistLeftForearm" position="-0.04 -0.28 0.24" rotation="-40 25 0">
+                <a-cylinder position="0 -0.14 0" radius="0.045" height="0.3" material="color: #141c30"></a-cylinder>
+                <a-sphere position="0 -0.3 0" radius="0.06"
+                          material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.5" id="artistGloveL"></a-sphere>
+              </a-entity>
+            </a-entity>
+
+            <!-- Right Arm: Hype & Crowd Fist Pump (Animated rhythm pumping & pulse drops) -->
+            <a-entity id="artistRightArm" position="0.32 0.52 0">
+              <a-cylinder position="0 0.16 0.1" radius="0.055" height="0.32" rotation="45 0 -20"
+                          material="color: #0e1526; metalness: 0.8"></a-cylinder>
+              <a-entity id="artistRightForearm" position="0.06 0.32 0.18" rotation="35 -15 0">
+                <a-cylinder position="0 0.14 0" radius="0.045" height="0.3" material="color: #141c30"></a-cylinder>
+                <a-sphere position="0 0.3 0" radius="0.065"
+                          material="color: #ff007f; emissive: #ff007f; emissiveIntensity: 2" id="artistGloveR"></a-sphere>
+              </a-entity>
+            </a-entity>
+          </a-entity>
+        </a-entity>
+
+        <!-- Floor Holographic Energy Ring Beneath Artist -->
+        <a-ring position="0 0.02 0" radius-inner="0.8" radius-outer="0.9" rotation="-90 0 0"
+                material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 1.2; side: double; opacity: 0.7; transparent: true" id="artistFloorRing"></a-ring>
       </a-entity>
     </a-entity>
 
@@ -983,31 +1089,35 @@
         <a-entity position="0.21 0.17 0.02" class="clickable" vr-button="action: theme; value: cyberpunk; label: CYBER; width: 0.18; height: 0.08; color: #39ff14"></a-entity>
         <a-entity position="0.42 0.17 0.02" class="clickable" vr-button="action: theme; value: gold; label: GOLD; width: 0.18; height: 0.08; color: #ffd700"></a-entity>
 
-        <!-- Row 2: FX TOGGLES (4 buttons) -->
+        <!-- Row 2: FX TOGGLES (5 buttons) -->
         <a-text value="STAGE EFFECTS" position="-0.54 0.07 0.01" width="1.1" font="mozillavr" color="#8ba2c4"></a-text>
 
-        <a-entity position="-0.36 -0.02 0.02" class="clickable" id="vrBtnLasers"
-                  vr-button="action: toggle; value: lasers; label: LASERS; width: 0.22; height: 0.08; color: #00f0ff; active: true"></a-entity>
-        <a-entity position="-0.12 -0.02 0.02" class="clickable" id="vrBtnParticles"
-                  vr-button="action: toggle; value: particles; label: MOTES; width: 0.22; height: 0.08; color: #00f0ff; active: true"></a-entity>
-        <a-entity position="0.12 -0.02 0.02" class="clickable" id="vrBtnRings"
-                  vr-button="action: toggle; value: rings; label: HALO; width: 0.22; height: 0.08; color: #00f0ff; active: true"></a-entity>
-        <a-entity position="0.36 -0.02 0.02" class="clickable" id="vrBtnBackdrop"
-                  vr-button="action: backdrop; value: cycle; label: SCREEN; width: 0.22; height: 0.08; color: #00f0ff"></a-entity>
+        <a-entity position="-0.42 -0.02 0.02" class="clickable" id="vrBtnLasers"
+                  vr-button="action: toggle; value: lasers; label: LASERS; width: 0.18; height: 0.08; color: #00f0ff; active: true"></a-entity>
+        <a-entity position="-0.21 -0.02 0.02" class="clickable" id="vrBtnParticles"
+                  vr-button="action: toggle; value: particles; label: MOTES; width: 0.18; height: 0.08; color: #00f0ff; active: true"></a-entity>
+        <a-entity position="0.00 -0.02 0.02" class="clickable" id="vrBtnRings"
+                  vr-button="action: toggle; value: rings; label: HALO; width: 0.18; height: 0.08; color: #00f0ff; active: true"></a-entity>
+        <a-entity position="0.21 -0.02 0.02" class="clickable" id="vrBtnCrowd"
+                  vr-button="action: toggle; value: crowd; label: CROWD; width: 0.18; height: 0.08; color: #00f0ff; active: true"></a-entity>
+        <a-entity position="0.42 -0.02 0.02" class="clickable" id="vrBtnArtist"
+                  vr-button="action: toggle; value: artist; label: ARTIST; width: 0.18; height: 0.08; color: #00f0ff; active: true"></a-entity>
 
-        <!-- Row 3: PERFORMANCE CONTROLS (Pulse, Speed, Synth, Views) -->
+        <!-- Row 3: PERFORMANCE CONTROLS (Pulse, Screen, Speed, Synth, Views, Reset) -->
         <a-text value="PERFORMANCE & VIEWS" position="-0.54 -0.12 0.01" width="1.1" font="mozillavr" color="#8ba2c4"></a-text>
 
-        <a-entity position="-0.40 -0.21 0.02" class="clickable"
-                  vr-button="action: pulse; value: now; label: PULSE FX; width: 0.20; height: 0.08; color: #ff007f"></a-entity>
-        <a-entity position="-0.18 -0.21 0.02" class="clickable" id="vrBtnSpeed"
-                  vr-button="action: speed; value: cycle; label: SPD: 1.0x; width: 0.19; height: 0.08; color: #00f0ff"></a-entity>
-        <a-entity position="0.03 -0.21 0.02" class="clickable" id="vrBtnAudio"
-                  vr-button="action: audio; value: toggle; label: SYNTH: OFF; width: 0.20; height: 0.08; color: #9d00ff"></a-entity>
-        <a-entity position="0.25 -0.21 0.02" class="clickable" id="vrBtnView"
-                  vr-button="action: view; value: cycle; label: VIEW: FRONT; width: 0.21; height: 0.08; color: #00f0ff"></a-entity>
-        <a-entity position="0.45 -0.21 0.02" class="clickable"
-                  vr-button="action: reset; value: all; label: RESET; width: 0.15; height: 0.08; color: #ff5555"></a-entity>
+        <a-entity position="-0.44 -0.21 0.02" class="clickable"
+                  vr-button="action: pulse; value: now; label: PULSE FX; width: 0.18; height: 0.08; color: #ff007f"></a-entity>
+        <a-entity position="-0.25 -0.21 0.02" class="clickable" id="vrBtnBackdrop"
+                  vr-button="action: backdrop; value: cycle; label: SCREEN; width: 0.18; height: 0.08; color: #00f0ff"></a-entity>
+        <a-entity position="-0.06 -0.21 0.02" class="clickable" id="vrBtnSpeed"
+                  vr-button="action: speed; value: cycle; label: SPD: 1.0x; width: 0.18; height: 0.08; color: #00f0ff"></a-entity>
+        <a-entity position="0.13 -0.21 0.02" class="clickable" id="vrBtnAudio"
+                  vr-button="action: audio; value: toggle; label: SYNTH: OFF; width: 0.18; height: 0.08; color: #9d00ff"></a-entity>
+        <a-entity position="0.32 -0.21 0.02" class="clickable" id="vrBtnView"
+                  vr-button="action: view; value: cycle; label: VIEW: FRONT; width: 0.18; height: 0.08; color: #00f0ff"></a-entity>
+        <a-entity position="0.48 -0.21 0.02" class="clickable"
+                  vr-button="action: reset; value: all; label: RESET; width: 0.12; height: 0.08; color: #ff5555"></a-entity>
 
         <!-- Footer Notice: Recenter panel tooltip -->
         <a-text value="Press [Recenter Panel] or Grip button to pull panel forward" align="center" position="0 -0.34 0.01"
@@ -1034,7 +1144,9 @@
           lasers: true,
           particles: true,
           rings: true,
-          spots: true
+          spots: true,
+          crowd: true,
+          artist: true
         },
         backdropMode: 0, // 0: Cyber Grid, 1: Hyperspace, 2: Waveforms, 3: Mandala
         backdropModesList: ['GRID', 'WARP', 'WAVES', 'MANDALA'],
@@ -1498,6 +1610,16 @@
           chip.classList.toggle('active', chip.classList.contains(`theme-${themeKey}`));
         });
 
+        // 10. Update Performing Artist & Vibing Crowd
+        const artist = document.getElementById('performingArtist');
+        if (artist && artist.components && artist.components['performing-artist']) {
+          artist.components['performing-artist'].updateTheme(t);
+        }
+        const crowd = document.getElementById('vibingCrowd');
+        if (crowd && crowd.components && crowd.components['vibing-crowd']) {
+          crowd.components['vibing-crowd'].updateTheme(t);
+        }
+
         showToast(`THEME APPLIED: ${t.name}`);
         updateVRButtonsState();
       }
@@ -1528,6 +1650,18 @@
           const btn = document.getElementById('btnFxRings');
           if (btn) btn.classList.toggle('active', isActive);
           showToast(`KINETIC HALO: ${isActive ? 'ENABLED' : 'DISABLED'}`);
+        } else if (fxName === 'crowd') {
+          const el = document.getElementById('vibingCrowd');
+          if (el) el.setAttribute('visible', isActive);
+          const btn = document.getElementById('btnFxCrowd');
+          if (btn) btn.classList.toggle('active', isActive);
+          showToast(`VIBING CROWD: ${isActive ? 'ENABLED' : 'DISABLED'}`);
+        } else if (fxName === 'artist') {
+          const el = document.getElementById('performingArtist');
+          if (el) el.setAttribute('visible', isActive);
+          const btn = document.getElementById('btnFxArtist');
+          if (btn) btn.classList.toggle('active', isActive);
+          showToast(`STAGE ARTIST: ${isActive ? 'ENABLED' : 'DISABLED'}`);
         }
 
         updateVRButtonsState();
@@ -1612,12 +1746,18 @@
         state.effects.lasers = true;
         state.effects.particles = true;
         state.effects.rings = true;
+        state.effects.crowd = true;
+        state.effects.artist = true;
         document.getElementById('laserArraysGroup').setAttribute('visible', true);
         document.getElementById('particlesField').setAttribute('visible', true);
         document.getElementById('kineticRingsGroup').setAttribute('visible', true);
+        document.getElementById('vibingCrowd').setAttribute('visible', true);
+        document.getElementById('performingArtist').setAttribute('visible', true);
         document.getElementById('btnFxLasers').classList.add('active');
         document.getElementById('btnFxParticles').classList.add('active');
         document.getElementById('btnFxRings').classList.add('active');
+        document.getElementById('btnFxCrowd').classList.add('active');
+        document.getElementById('btnFxArtist').classList.add('active');
 
         state.backdropMode = 0;
         document.getElementById('btnBackdropMode').textContent = 'SCREEN: GRID';
@@ -1656,6 +1796,16 @@
         const vrRings = document.getElementById('vrBtnRings');
         if (vrRings && vrRings.components && vrRings.components['vr-button']) {
           vrRings.components['vr-button'].setActive(state.effects.rings);
+        }
+        // Update Crowd VR Button
+        const vrCrowd = document.getElementById('vrBtnCrowd');
+        if (vrCrowd && vrCrowd.components && vrCrowd.components['vr-button']) {
+          vrCrowd.components['vr-button'].setActive(state.effects.crowd);
+        }
+        // Update Artist VR Button
+        const vrArtist = document.getElementById('vrBtnArtist');
+        if (vrArtist && vrArtist.components && vrArtist.components['vr-button']) {
+          vrArtist.components['vr-button'].setActive(state.effects.artist);
         }
         // Update Screen Mode VR Button
         const vrBackdrop = document.getElementById('vrBtnBackdrop');
@@ -1760,6 +1910,8 @@
         else if (key === 'L') toggleEffect('lasers');
         else if (key === 'P') toggleEffect('particles');
         else if (key === 'R') toggleEffect('rings');
+        else if (key === 'C') toggleEffect('crowd');
+        else if (key === 'A') toggleEffect('artist');
         else if (key === 'B') nextBackdropMode();
         else if (key === ' ') { e.preventDefault(); triggerPulse(); }
         else if (key === 'M') toggleAudio();
@@ -2120,6 +2272,343 @@
       recenterPanel: function () {
         this.el.setAttribute('position', '0 1.15 -1.25');
         this.el.setAttribute('rotation', '-16 0 0');
+      }
+    });
+
+    /**
+     * Component: performing-artist
+     * Animates the futuristic electronic cyber-artist stationed on the stage deck behind the DJ console.
+     * Features tempo-synced head nodding, torso groove, synth playing, hype crowd fist pumping,
+     * and bass-drop celebratory hype animations.
+     */
+    AFRAME.registerComponent('performing-artist', {
+      init: function () {
+        this.t = 0;
+        this.torso = this.el.querySelector('#artistTorso');
+        this.head = this.el.querySelector('#artistHead');
+        this.leftArm = this.el.querySelector('#artistLeftArm');
+        this.leftForearm = this.el.querySelector('#artistLeftForearm');
+        this.rightArm = this.el.querySelector('#artistRightArm');
+        this.rightForearm = this.el.querySelector('#artistRightForearm');
+        this.visor = this.el.querySelector('#artistVisor');
+        this.coreLight = this.el.querySelector('#artistCoreLight');
+        this.auraRing = this.el.querySelector('#artistFloorRing');
+      },
+      tick: function (time, delta) {
+        if (!CyberStage.state.isPlaying) return;
+        const spd = (delta / 1000) * CyberStage.state.speedMultiplier;
+        this.t += spd;
+        const pulse = CyberStage.state.pulseDecay;
+
+        // 120 BPM rhythmic pulse
+        const beat = this.t * 4;
+
+        // Head rhythmic nodding to the music
+        if (this.head) {
+          const nod = Math.sin(beat * 2) * 0.16;
+          const tilt = Math.sin(this.t * 1.2) * 0.1;
+          this.head.object3D.rotation.x = nod - (pulse > 0.1 ? 0.25 : 0.0);
+          this.head.object3D.rotation.y = tilt;
+        }
+
+        // Torso dance groove
+        if (this.torso) {
+          this.torso.object3D.rotation.y = Math.sin(this.t * 1.8) * 0.14;
+          this.torso.object3D.rotation.z = Math.cos(this.t * 1.2) * 0.06;
+          this.torso.object3D.position.y = 0.84 + Math.abs(Math.sin(beat)) * 0.04 + pulse * 0.14;
+        }
+
+        // Left Arm: Playing DJ synthesizer / mixing controls
+        if (this.leftArm) {
+          this.leftArm.object3D.rotation.x = -0.28 + Math.sin(this.t * 3.8) * 0.14;
+          this.leftArm.object3D.rotation.y = Math.cos(this.t * 2.5) * 0.18;
+        }
+        if (this.leftForearm) {
+          this.leftForearm.object3D.rotation.x = -0.65 + Math.sin(this.t * 5.2) * 0.18;
+        }
+
+        // Right Arm: Hype / Fist Pump / Pointing / Bass Drop Reach
+        if (this.rightArm) {
+          if (pulse > 0.1) {
+            // Drop / Pulse celebration: arm reaches straight up to sky!
+            this.rightArm.object3D.rotation.x = -2.6 + Math.sin(beat * 4) * 0.2;
+            this.rightArm.object3D.rotation.z = -0.3;
+          } else {
+            // Standard rhythmic crowd fist pump
+            this.rightArm.object3D.rotation.x = -1.1 + Math.sin(beat * 2) * 0.38;
+            this.rightArm.object3D.rotation.z = -0.22 + Math.cos(beat) * 0.12;
+          }
+        }
+        if (this.rightForearm) {
+          this.rightForearm.object3D.rotation.x = 0.4 + Math.sin(beat * 2) * 0.2;
+        }
+
+        // Floor aura ring pulse
+        if (this.auraRing) {
+          const s = 1.0 + Math.sin(beat) * 0.08 + pulse * 0.35;
+          this.auraRing.object3D.scale.set(s, s, s);
+        }
+
+        // Flash visor and reactor during kick / pulse
+        if (this.visor) {
+          const visorIntensity = 1.8 + pulse * 2.5;
+          this.visor.setAttribute('material', 'emissiveIntensity', visorIntensity);
+        }
+      },
+      updateTheme: function (theme) {
+        if (this.visor) this.visor.setAttribute('material', `color: ${theme.primary}; emissive: ${theme.primary}`);
+        if (this.coreLight) this.coreLight.setAttribute('material', `color: #ffffff; emissive: ${theme.primary}`);
+
+        const hpL = this.el.querySelector('#artistHeadphonesL');
+        const hpR = this.el.querySelector('#artistHeadphonesR');
+        if (hpL) hpL.setAttribute('material', `color: ${theme.secondary}; emissive: ${theme.secondary}`);
+        if (hpR) hpR.setAttribute('material', `color: ${theme.secondary}; emissive: ${theme.secondary}`);
+
+        const cn1 = this.el.querySelector('#artistChestNeon1');
+        const cn2 = this.el.querySelector('#artistChestNeon2');
+        if (cn1) cn1.setAttribute('material', `color: ${theme.primary}; emissive: ${theme.primary}`);
+        if (cn2) cn2.setAttribute('material', `color: ${theme.primary}; emissive: ${theme.primary}`);
+
+        const bL = this.el.querySelector('#artistBootL');
+        const bR = this.el.querySelector('#artistBootR');
+        if (bL) bL.setAttribute('material', `color: ${theme.primary}; emissive: ${theme.primary}`);
+        if (bR) bR.setAttribute('material', `color: ${theme.primary}; emissive: ${theme.primary}`);
+
+        const gL = this.el.querySelector('#artistGloveL');
+        const gR = this.el.querySelector('#artistGloveR');
+        if (gL) gL.setAttribute('material', `color: ${theme.primary}; emissive: ${theme.primary}`);
+        if (gR) gR.setAttribute('material', `color: ${theme.secondary}; emissive: ${theme.secondary}`);
+
+        const ring = this.el.querySelector('#artistFloorRing');
+        if (ring) ring.setAttribute('material', `color: ${theme.primary}; emissive: ${theme.primary}`);
+
+        const tagRing = this.el.querySelector('#artistTagRing');
+        const tagName = this.el.querySelector('#artistTagName');
+        if (tagRing) tagRing.setAttribute('material', `color: ${theme.primary}; emissive: ${theme.primary}`);
+        if (tagName) tagName.setAttribute('color', theme.primary);
+      }
+    });
+
+    /**
+     * Component: vibing-crowd
+     * Procedurally populates and animates 34 stylized concert-goers in the audience pit.
+     * Includes individual phase offsets, rhythmic bounces, sway, and waving neon glowsticks.
+     */
+    AFRAME.registerComponent('vibing-crowd', {
+      init: function () {
+        this.people = [];
+        this.t = 0;
+        const currentTheme = CyberStage.themes[CyberStage.state.theme];
+
+        // 34 realistic pit positions flanking the catwalk and in front of the barrier
+        const crowdPositions = [
+          // Left pit (flanking catwalk)
+          { x: -2.2, z: -2.8, acc: 'stick' },
+          { x: -3.5, z: -3.0, acc: 'horns' },
+          { x: -4.8, z: -2.6, acc: 'visor' },
+          { x: -2.6, z: -1.8, acc: 'stick' },
+          { x: -3.8, z: -1.7, acc: 'stick' },
+          { x: -5.2, z: -1.5, acc: 'horns' },
+          { x: -2.0, z: -0.7, acc: 'visor' },
+          { x: -3.4, z: -0.6, acc: 'stick' },
+          { x: -4.6, z: -0.4, acc: 'horns' },
+          { x: -6.0, z: -1.0, acc: 'stick' },
+          { x: -2.5, z: 0.1, acc: 'stick' },
+          { x: -4.0, z: 0.2, acc: 'visor' },
+
+          // Right pit (flanking catwalk)
+          { x: 2.2, z: -2.8, acc: 'stick' },
+          { x: 3.5, z: -3.0, acc: 'horns' },
+          { x: 4.8, z: -2.6, acc: 'visor' },
+          { x: 2.6, z: -1.8, acc: 'stick' },
+          { x: 3.8, z: -1.7, acc: 'horns' },
+          { x: 5.2, z: -1.5, acc: 'stick' },
+          { x: 2.0, z: -0.7, acc: 'visor' },
+          { x: 3.4, z: -0.6, acc: 'stick' },
+          { x: 4.6, z: -0.4, acc: 'horns' },
+          { x: 6.0, z: -1.0, acc: 'stick' },
+          { x: 2.5, z: 0.1, acc: 'stick' },
+          { x: 4.0, z: 0.2, acc: 'horns' },
+
+          // Front-row center barrier area (near user at z=2.2)
+          { x: -1.4, z: 1.0, acc: 'stick' },
+          { x: 0.0, z: 1.1, acc: 'horns' },
+          { x: 1.4, z: 1.0, acc: 'stick' },
+          { x: -2.8, z: 1.4, acc: 'visor' },
+          { x: 2.8, z: 1.4, acc: 'stick' },
+          { x: -0.8, z: 1.8, acc: 'stick' },
+          { x: 0.8, z: 1.8, acc: 'horns' },
+          { x: -1.9, z: 2.6, acc: 'visor' },
+          { x: 1.9, z: 2.6, acc: 'stick' },
+          { x: -3.5, z: 2.8, acc: 'horns' }
+        ];
+
+        const darkHues = ['#080c16', '#0f1422', '#141a2c', '#0a0d18'];
+
+        crowdPositions.forEach((pos, idx) => {
+          const person = document.createElement('a-entity');
+          person.setAttribute('position', `${pos.x} 0 ${pos.z}`);
+
+          // Orient face towards center stage artist at (0, 1.8, -5)
+          const angleToStage = Math.atan2(0 - pos.x, -5 - pos.z) * (180 / Math.PI);
+          person.setAttribute('rotation', `0 ${angleToStage} 0`);
+
+          const bodyColor = darkHues[idx % darkHues.length];
+          const accColor = (idx % 2 === 0) ? currentTheme.primary : currentTheme.secondary;
+
+          // Body (Torso + Legs in stylish silhouette)
+          const body = document.createElement('a-cylinder');
+          body.setAttribute('radius', '0.17');
+          body.setAttribute('height', '1.18');
+          body.setAttribute('position', '0 0.59 0');
+          body.setAttribute('material', `color: ${bodyColor}; roughness: 0.8; metalness: 0.2`);
+          person.appendChild(body);
+
+          // Head
+          const head = document.createElement('a-sphere');
+          head.setAttribute('radius', '0.13');
+          head.setAttribute('position', '0 1.28 0');
+          head.setAttribute('material', `color: #121826; roughness: 0.6`);
+          person.appendChild(head);
+
+          // Accessories & Waving Arm
+          let armPivot = null;
+          let accMesh = null;
+
+          if (pos.acc === 'stick') {
+            // Raised Arm with Waving Neon Glowstick
+            armPivot = document.createElement('a-entity');
+            armPivot.setAttribute('position', '0.18 1.1 0');
+
+            const forearm = document.createElement('a-cylinder');
+            forearm.setAttribute('radius', '0.035');
+            forearm.setAttribute('height', '0.36');
+            forearm.setAttribute('position', '0 0.18 0.05');
+            forearm.setAttribute('rotation', '25 0 -15');
+            forearm.setAttribute('material', `color: ${bodyColor}`);
+            armPivot.appendChild(forearm);
+
+            // Glowing Glowstick
+            const stick = document.createElement('a-cylinder');
+            stick.setAttribute('radius', '0.018');
+            stick.setAttribute('height', '0.52');
+            stick.setAttribute('position', '0.02 0.42 0.12');
+            stick.setAttribute('rotation', '20 0 -25');
+            stick.setAttribute('material', `color: ${accColor}; emissive: ${accColor}; emissiveIntensity: 2; opacity: 0.95`);
+            stick.classList.add('crowdGlowItem');
+            armPivot.appendChild(stick);
+
+            person.appendChild(armPivot);
+            accMesh = stick;
+          } else if (pos.acc === 'horns') {
+            // Cyber Devil Horns / Bunny Ears
+            const hornL = document.createElement('a-cone');
+            hornL.setAttribute('radius-bottom', '0.025');
+            hornL.setAttribute('height', '0.14');
+            hornL.setAttribute('position', '-0.08 1.44 0');
+            hornL.setAttribute('rotation', '15 0 -20');
+            hornL.setAttribute('material', `color: ${accColor}; emissive: ${accColor}; emissiveIntensity: 2`);
+            hornL.classList.add('crowdGlowItem');
+            person.appendChild(hornL);
+
+            const hornR = document.createElement('a-cone');
+            hornR.setAttribute('radius-bottom', '0.025');
+            hornR.setAttribute('height', '0.14');
+            hornR.setAttribute('position', '0.08 1.44 0');
+            hornR.setAttribute('rotation', '15 0 20');
+            hornR.setAttribute('material', `color: ${accColor}; emissive: ${accColor}; emissiveIntensity: 2`);
+            hornR.classList.add('crowdGlowItem');
+            person.appendChild(hornR);
+
+            // Both arms pumping
+            armPivot = document.createElement('a-entity');
+            armPivot.setAttribute('position', '0 1.05 0');
+            const armL = document.createElement('a-cylinder');
+            armL.setAttribute('radius', '0.03');
+            armL.setAttribute('height', '0.32');
+            armL.setAttribute('position', '-0.2 0.14 0.08');
+            armL.setAttribute('rotation', '45 0 20');
+            armL.setAttribute('material', `color: ${bodyColor}`);
+            armPivot.appendChild(armL);
+
+            const armR = document.createElement('a-cylinder');
+            armR.setAttribute('radius', '0.03');
+            armR.setAttribute('height', '0.32');
+            armR.setAttribute('position', '0.2 0.14 0.08');
+            armR.setAttribute('rotation', '45 0 -20');
+            armR.setAttribute('material', `color: ${bodyColor}`);
+            armPivot.appendChild(armR);
+
+            person.appendChild(armPivot);
+            accMesh = hornL;
+          } else {
+            // Neon Cyber Glasses / Visor
+            const visor = document.createElement('a-box');
+            visor.setAttribute('width', '0.19');
+            visor.setAttribute('height', '0.04');
+            visor.setAttribute('depth', '0.06');
+            visor.setAttribute('position', '0 1.3 0.11');
+            visor.setAttribute('material', `color: ${accColor}; emissive: ${accColor}; emissiveIntensity: 2`);
+            visor.classList.add('crowdGlowItem');
+            person.appendChild(visor);
+
+            // One arm raised fist
+            armPivot = document.createElement('a-entity');
+            armPivot.setAttribute('position', '-0.18 1.1 0');
+            const arm = document.createElement('a-cylinder');
+            arm.setAttribute('radius', '0.035');
+            arm.setAttribute('height', '0.34');
+            arm.setAttribute('position', '0 0.16 0.06');
+            arm.setAttribute('rotation', '35 0 15');
+            arm.setAttribute('material', `color: ${bodyColor}`);
+            armPivot.appendChild(arm);
+
+            person.appendChild(armPivot);
+            accMesh = visor;
+          }
+
+          this.el.appendChild(person);
+
+          this.people.push({
+            el: person,
+            arm: armPivot,
+            acc: accMesh,
+            baseX: pos.x,
+            baseZ: pos.z,
+            phase: Math.random() * Math.PI * 2,
+            bounceSpeed: 1.8 + Math.random() * 0.5,
+            bounceHeight: 0.06 + Math.random() * 0.06,
+            swaySpeed: 0.9 + Math.random() * 0.4
+          });
+        });
+      },
+      tick: function (time, delta) {
+        if (!CyberStage.state.isPlaying) return;
+        const spd = (delta / 1000) * CyberStage.state.speedMultiplier;
+        this.t += spd;
+        const pulse = CyberStage.state.pulseDecay;
+
+        this.people.forEach(p => {
+          // Bounce up & down on the beat (jump higher when pulse triggers)
+          const bounce = Math.abs(Math.sin(this.t * p.bounceSpeed * 3 + p.phase)) * (p.bounceHeight + pulse * 0.22);
+          p.el.object3D.position.y = bounce;
+
+          // Gentle concert sway
+          p.el.object3D.rotation.z = Math.sin(this.t * p.swaySpeed + p.phase) * 0.06;
+
+          // Arm wave / glowstick waving
+          if (p.arm) {
+            p.arm.object3D.rotation.z = Math.sin(this.t * 3.5 + p.phase) * (0.35 + pulse * 0.3);
+            p.arm.object3D.rotation.x = Math.cos(this.t * 2.8 + p.phase) * 0.25;
+          }
+        });
+      },
+      updateTheme: function (theme) {
+        const glowItems = this.el.querySelectorAll('.crowdGlowItem');
+        glowItems.forEach((item, idx) => {
+          const col = idx % 2 === 0 ? theme.primary : theme.secondary;
+          item.setAttribute('material', `color: ${col}; emissive: ${col}`);
+        });
       }
     });
 
